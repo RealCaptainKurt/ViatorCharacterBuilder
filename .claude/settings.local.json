@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx expo:*)",
+      "Bash(ls /c/Code/Personal/ViatorCharacterBuilder/ViatorCharacterBuilder-Claude/app/\\\\\\(tabs\\\\\\)/)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
