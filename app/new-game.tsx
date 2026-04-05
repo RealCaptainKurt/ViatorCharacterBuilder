@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -45,7 +45,7 @@ export default function NewGameScreen() {
 
   const hasUnsavedData = step !== 'choose_type' || charName.length > 0 || traits.length > 0;
 
-  const confirmClose = () => {
+  const confirmClose = useCallback(() => {
     if (hasUnsavedData) {
       Alert.alert(
         'Discard changes?',
@@ -58,7 +58,7 @@ export default function NewGameScreen() {
     } else {
       router.back();
     }
-  };
+  }, [hasUnsavedData]);
 
   // Intercept Android hardware back button
   useEffect(() => {
@@ -67,7 +67,7 @@ export default function NewGameScreen() {
       return true;
     });
     return () => sub.remove();
-  }, [hasUnsavedData]);
+  }, [confirmClose]);
 
   const handleNewCampaignOnly = () => {
     const camp = createCampaign('New Campaign', colorScheme);
@@ -269,6 +269,7 @@ export default function NewGameScreen() {
                       { color: scheme.text, borderColor: scheme.surfaceBorder },
                     ]}
                     autoFocus
+                    selectionColor={scheme.primary}
                   />
                   <View style={styles.levelRow}>
                     {[1, 2, 3, 4, 5, 6].map((l) => (

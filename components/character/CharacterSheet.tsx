@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { COLOR_SCHEMES } from '../../constants/colorSchemes';
-import { Character } from '../../types';
+import { Character, AdditionalListComponent, CollapsedSections } from '../../types';
 import { useAppStore } from '../../store/appStore';
 import GlassCard from '../ui/GlassCard';
 import CollapsibleSection from '../ui/CollapsibleSection';
@@ -15,12 +15,9 @@ import TraitRow from './TraitRow';
 import GlassButton from '../ui/GlassButton';
 import GlassInput from '../ui/GlassInput';
 import TextContentRow from '../ui/TextContentRow';
-
-interface CollapsedState {
-  description: boolean;
-  traits: boolean;
-  [key: string]: boolean;
-}
+import ModalOverlay from '../ui/ModalOverlay';
+import NamedItemRow from '../campaign/NamedItemRow';
+import AddItemRow from '../campaign/AddItemRow';
 
 interface Props {
   character: Character;
@@ -33,27 +30,57 @@ export default function CharacterSheet({ character }: Props) {
     addTrait,
     updateTrait,
     removeTrait,
-    updateCharacterComponent,
+    updateCharacterComponentText,
+    addCharacterComponentListItem,
+    updateCharacterComponentListItem,
+    removeCharacterComponentListItem,
   } = useAppStore();
 
-  const [collapsed, setCollapsed] = useState<CollapsedState>({
+  const [collapsed, setCollapsed] = useState<CollapsedSections>({
     description: false,
     traits: false,
   });
 
-  const [addingTrait, setAddingTrait] = useState(false);
+  // XP modal state
+  const [showXpModal, setShowXpModal] = useState(false);
+  const [draftXp, setDraftXp] = useState(String(character.xp));
+
+  // Add-trait modal state
+  const [showAddTrait, setShowAddTrait] = useState(false);
   const [newTraitName, setNewTraitName] = useState('');
   const [newTraitLevel, setNewTraitLevel] = useState(1);
 
+  // Add-item state for list components
+  const [addingItemCompId, setAddingItemCompId] = useState<string | null>(null);
+
   const toggle = (key: string) =>
     setCollapsed((s) => ({ ...s, [key]: !s[key] }));
+
+  const openXpModal = () => {
+    setDraftXp(String(character.xp));
+    setShowXpModal(true);
+  };
+
+  const handleXpSave = () => {
+    const n = parseInt(draftXp, 10);
+    if (!isNaN(n) && n >= 0) {
+      updateCharacterField(character.id, 'xp', n);
+    }
+    setShowXpModal(false);
+  };
+
+  const adjustXp = (delta: number) => {
+    const n = parseInt(draftXp, 10) || 0;
+    const next = Math.max(0, n + delta);
+    setDraftXp(String(next));
+  };
 
   const handleAddTrait = () => {
     if (!newTraitName.trim()) return;
     addTrait(character.id, newTraitName.trim(), newTraitLevel);
     setNewTraitName('');
     setNewTraitLevel(1);
-    setAddingTrait(false);
+    setShowAddTrait(false);
   };
 
   return (
@@ -68,24 +95,79 @@ export default function CharacterSheet({ character }: Props) {
           placeholderTextColor={scheme.textMuted}
           selectionColor={scheme.primary}
         />
-        <View style={styles.xpBox}>
+        <TouchableOpacity onPress={openXpModal} style={styles.xpBox} activeOpacity={0.7}>
           <Text style={[styles.xpLabel, { color: scheme.textSecondary }]}>XP</Text>
+          <View style={[styles.xpDisplay, { borderColor: scheme.surfaceBorder }]}>
+            <Text style={[styles.xpValue, { color: scheme.primary }]}>
+              {character.xp}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── XP Modal ──────────────────────────────── */}
+      <ModalOverlay
+        visible={showXpModal}
+        onClose={() => setShowXpModal(false)}
+        scheme={scheme}
+        title="Experience Points"
+      >
+        <View style={styles.xpModalRow}>
+          <TouchableOpacity
+            onPress={() => adjustXp(-1)}
+            style={[styles.xpAdjustBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.surface }]}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.xpAdjustText, { color: scheme.destructive }]}>−</Text>
+          </TouchableOpacity>
+
           <TextInput
-            value={String(character.xp)}
+            value={draftXp}
             onChangeText={(v) => {
-              const n = parseInt(v, 10);
-              if (!isNaN(n) && n >= 0) {
-                updateCharacterField(character.id, 'xp', n);
-              } else if (v === '') {
-                updateCharacterField(character.id, 'xp', 0);
-              }
+              if (v === '' || /^\d+$/.test(v)) setDraftXp(v);
             }}
             keyboardType="number-pad"
-            style={[styles.xpInput, { color: scheme.primary, borderColor: scheme.surfaceBorder }]}
+            style={[
+              styles.xpModalInput,
+              {
+                color: scheme.primary,
+                borderColor: scheme.surfaceBorder,
+                backgroundColor: scheme.primaryMuted,
+              },
+            ]}
             selectionColor={scheme.primary}
+            selectTextOnFocus
+            autoFocus
+          />
+
+          <TouchableOpacity
+            onPress={() => adjustXp(1)}
+            style={[styles.xpAdjustBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.surface }]}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.xpAdjustText, { color: scheme.primary }]}>+</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.modalActions}>
+          <GlassButton
+            label="Cancel"
+            onPress={() => setShowXpModal(false)}
+            scheme={scheme}
+            variant="ghost"
+            small
+            style={{ flex: 1 }}
+          />
+          <GlassButton
+            label="Save"
+            onPress={handleXpSave}
+            scheme={scheme}
+            variant="primary"
+            small
+            style={{ flex: 1 }}
           />
         </View>
-      </View>
+      </ModalOverlay>
 
       {/* ── Description ───────────────────────────── */}
       <CollapsibleSection
@@ -111,16 +193,18 @@ export default function CharacterSheet({ character }: Props) {
         onToggle={() => toggle('traits')}
         rightContent={
           <TouchableOpacity
-            onPress={() => setAddingTrait((v) => !v)}
+            onPress={() => {
+              setNewTraitName('');
+              setNewTraitLevel(1);
+              setShowAddTrait(true);
+            }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={[styles.addBtn, { color: scheme.primary }]}>
-              {addingTrait ? '✕' : '+'}
-            </Text>
+            <Text style={[styles.addBtn, { color: scheme.primary }]}>+</Text>
           </TouchableOpacity>
         }
       >
-        {character.traits.length === 0 && !addingTrait ? (
+        {character.traits.length === 0 ? (
           <Text style={[styles.empty, { color: scheme.textMuted }]}>
             No traits yet. Tap + to add one.
           </Text>
@@ -135,98 +219,157 @@ export default function CharacterSheet({ character }: Props) {
             onRemove={() => removeTrait(character.id, trait.id)}
           />
         ))}
-
-        {addingTrait && (
-          <View
-            style={[styles.addTraitForm, { borderTopColor: scheme.surfaceBorder }]}
-          >
-            <TextInput
-              value={newTraitName}
-              onChangeText={setNewTraitName}
-              placeholder="Trait name"
-              placeholderTextColor={scheme.textMuted}
-              style={[
-                styles.addTraitInput,
-                {
-                  color: scheme.text,
-                  borderColor: scheme.surfaceBorder,
-                  backgroundColor: scheme.primaryMuted,
-                },
-              ]}
-              autoFocus
-            />
-            <View style={styles.levelRow}>
-              {[1, 2, 3, 4, 5, 6].map((l) => (
-                <TouchableOpacity
-                  key={l}
-                  onPress={() => setNewTraitLevel(l)}
-                  style={[
-                    styles.levelPip,
-                    {
-                      backgroundColor:
-                        l <= newTraitLevel
-                          ? scheme.levelColors[newTraitLevel - 1]
-                          : scheme.surface,
-                      borderColor:
-                        l <= newTraitLevel ? scheme.primary : scheme.surfaceBorder,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      color:
-                        l <= newTraitLevel ? scheme.text : scheme.textMuted,
-                      fontSize: 11,
-                      fontWeight: '700',
-                    }}
-                  >
-                    {l}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={styles.addTraitActions}>
-              <GlassButton
-                label="Cancel"
-                onPress={() => { setAddingTrait(false); setNewTraitName(''); }}
-                scheme={scheme}
-                variant="ghost"
-                small
-                style={{ flex: 1 }}
-              />
-              <GlassButton
-                label="Add Trait"
-                onPress={handleAddTrait}
-                scheme={scheme}
-                variant="primary"
-                small
-                style={{ flex: 1 }}
-                disabled={!newTraitName.trim()}
-              />
-            </View>
-          </View>
-        )}
       </CollapsibleSection>
 
-      {/* ── Additional Components ──────────────────── */}
-      {character.additionalComponents.map((comp) => (
-        <CollapsibleSection
-          key={comp.id}
-          title={comp.name}
+      {/* ── Add Trait Modal ─────────────────────────── */}
+      <ModalOverlay
+        visible={showAddTrait}
+        onClose={() => setShowAddTrait(false)}
+        scheme={scheme}
+        title="New Trait"
+      >
+        <GlassInput
           scheme={scheme}
-          collapsed={collapsed[comp.id] ?? false}
-          onToggle={() => toggle(comp.id)}
-        >
-          <TextContentRow
-            content={comp.content}
-            scheme={scheme}
-            placeholder={`Tap to add ${comp.name.toLowerCase()}...`}
-            title={comp.name}
-            onSave={(v) => updateCharacterComponent(character.id, comp.id, comp.name, v)}
-          />
-        </CollapsibleSection>
-      ))}
+          label="Trait Name"
+          value={newTraitName}
+          onChangeText={setNewTraitName}
+          placeholder="e.g. Swordsmanship"
+          containerStyle={{ marginBottom: 16 }}
+        />
 
+        <Text style={[styles.levelLabel, { color: scheme.textSecondary }]}>
+          Level
+        </Text>
+        <View style={styles.levelRow}>
+          {[1, 2, 3, 4, 5, 6].map((l) => (
+            <TouchableOpacity
+              key={l}
+              onPress={() => setNewTraitLevel(l)}
+              style={[
+                styles.levelPip,
+                {
+                  backgroundColor:
+                    l <= newTraitLevel
+                      ? scheme.levelColors[newTraitLevel - 1]
+                      : scheme.surface,
+                  borderColor:
+                    l <= newTraitLevel ? scheme.primary : scheme.surfaceBorder,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: l <= newTraitLevel ? scheme.text : scheme.textMuted,
+                  fontSize: 11,
+                  fontWeight: '700',
+                }}
+              >
+                {l}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.modalActions}>
+          <GlassButton
+            label="Cancel"
+            onPress={() => setShowAddTrait(false)}
+            scheme={scheme}
+            variant="ghost"
+            small
+            style={{ flex: 1 }}
+          />
+          <GlassButton
+            label="Add Trait"
+            onPress={handleAddTrait}
+            scheme={scheme}
+            variant="primary"
+            small
+            style={{ flex: 1 }}
+            disabled={!newTraitName.trim()}
+          />
+        </View>
+      </ModalOverlay>
+
+      {/* ── Additional Components ──────────────────── */}
+      {character.additionalComponents.map((comp) => {
+        if (comp.type === 'list') {
+          const listComp = comp as AdditionalListComponent;
+          return (
+            <CollapsibleSection
+              key={comp.id}
+              title={comp.name}
+              scheme={scheme}
+              collapsed={collapsed[comp.id] ?? false}
+              onToggle={() => toggle(comp.id)}
+              rightContent={
+                <TouchableOpacity
+                  onPress={() => setAddingItemCompId(comp.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={[styles.addBtn, { color: scheme.primary }]}>+</Text>
+                </TouchableOpacity>
+              }
+            >
+              {listComp.items.length === 0 ? (
+                <Text style={[styles.empty, { color: scheme.textMuted }]}>
+                  No items yet. Tap + to add.
+                </Text>
+              ) : null}
+              {listComp.items.map((item) => (
+                <NamedItemRow
+                  key={item.id}
+                  item={item}
+                  scheme={scheme}
+                  onUpdate={(name, desc) =>
+                    updateCharacterComponentListItem(
+                      character.id,
+                      comp.id,
+                      item.id,
+                      name,
+                      desc
+                    )
+                  }
+                  onRemove={() =>
+                    removeCharacterComponentListItem(character.id, comp.id, item.id)
+                  }
+                />
+              ))}
+              <AddItemRow
+                visible={addingItemCompId === comp.id}
+                scheme={scheme}
+                title={`Add ${comp.name}`}
+                onAdd={(name, desc) => {
+                  addCharacterComponentListItem(character.id, comp.id, name, desc);
+                  setAddingItemCompId(null);
+                }}
+                onCancel={() => setAddingItemCompId(null)}
+              />
+            </CollapsibleSection>
+          );
+        }
+
+        // Text component
+        return (
+          <CollapsibleSection
+            key={comp.id}
+            title={comp.name}
+            scheme={scheme}
+            collapsed={collapsed[comp.id] ?? false}
+            onToggle={() => toggle(comp.id)}
+          >
+            <TextContentRow
+              content={comp.content}
+              scheme={scheme}
+              placeholder={`Tap to add ${comp.name.toLowerCase()}...`}
+              title={comp.name}
+              onSave={(v) =>
+                updateCharacterComponentText(character.id, comp.id, comp.name, v)
+              }
+            />
+          </CollapsibleSection>
+        );
+      })}
     </GlassCard>
   );
 }
@@ -260,14 +403,44 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 2,
   },
-  xpInput: {
-    fontSize: 18,
-    fontWeight: '700',
+  xpDisplay: {
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
     width: 72,
+    alignItems: 'center',
+  },
+  xpValue: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  xpModalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  xpAdjustBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  xpAdjustText: {
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 28,
+  },
+  xpModalInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 22,
+    fontWeight: '700',
     textAlign: 'center',
   },
   empty: {
@@ -281,21 +454,17 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     paddingHorizontal: 4,
   },
-  addTraitForm: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    gap: 10,
-  },
-  addTraitInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 14,
+  levelLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   levelRow: {
     flexDirection: 'row',
     gap: 8,
+    marginBottom: 20,
   },
   levelPip: {
     width: 36,
@@ -305,7 +474,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addTraitActions: {
+  modalActions: {
     flexDirection: 'row',
     gap: 8,
   },

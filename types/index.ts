@@ -7,40 +7,18 @@ export type ColorSchemeId =
   | 'amethyst'
   | 'obsidian';
 
-// ─── Viator Character ────────────────────────────────────────────────────────
+// ─── Shared Components ──────────────────────────────────────────────────────
 export interface Trait {
   id: string;
   name: string;
   level: number; // 1–6
 }
 
-export interface TextComponent {
-  id: string;
-  name: string;
-  content: string;
-}
-
-export interface Character {
-  id: string;
-  name: string;
-  xp: number;
-  description: string;
-  traits: Trait[];
-  additionalComponents: TextComponent[];
-  colorScheme: ColorSchemeId;
-  campaignId: string | null;
-  createdAt: number;
-  updatedAt: number;
-}
-
-// ─── Campaign ────────────────────────────────────────────────────────────────
 export interface NamedItem {
   id: string;
   name: string;
   description: string;
 }
-
-export type AdditionalComponentType = 'text' | 'list';
 
 export interface AdditionalTextComponent {
   id: string;
@@ -56,34 +34,38 @@ export interface AdditionalListComponent {
   items: NamedItem[];
 }
 
-export type AdditionalCampaignComponent =
+/** Shared additional component union — used by both Character and Campaign. */
+export type AdditionalComponent =
   | AdditionalTextComponent
   | AdditionalListComponent;
 
-export interface Campaign {
+// ─── Viator Character ────────────────────────────────────────────────────────
+export interface Character {
   id: string;
   name: string;
-  currentSceneEvents: NamedItem[];
-  npcs: NamedItem[];
-  locations: NamedItem[];
-  scenes: NamedItem[];
-  additionalComponents: AdditionalCampaignComponent[];
+  xp: number;
+  description: string;
+  traits: Trait[];
+  additionalComponents: AdditionalComponent[];
   colorScheme: ColorSchemeId;
-  characterId: string | null;
+  campaignId: string | null;
   createdAt: number;
   updatedAt: number;
 }
 
-// ─── Backup ──────────────────────────────────────────────────────────────────
-export interface Backup<T> {
-  timestamp: number;
-  data: T;
-}
-
-// ─── App State ───────────────────────────────────────────────────────────────
-export interface ActiveEntry {
+// ─── Campaign ────────────────────────────────────────────────────────────────
+export interface Campaign {
+  id: string;
+  name: string;
+  currentScene: string;
+  npcs: NamedItem[];
+  locations: NamedItem[];
+  scenes: NamedItem[];
+  additionalComponents: AdditionalComponent[];
+  colorScheme: ColorSchemeId;
   characterId: string | null;
-  campaignId: string | null;
+  createdAt: number;
+  updatedAt: number;
 }
 
 // ─── Section Collapse State ──────────────────────────────────────────────────

@@ -6,16 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { COLOR_SCHEMES } from '../../constants/colorSchemes';
-import { DEFAULT_SCHEME } from '../../constants/colorSchemes';
+import { ColorScheme } from '../../constants/colorSchemes';
 import GlassButton from '../ui/GlassButton';
 import ModalSheet from './ModalSheet';
+import { generateId } from '../../utils/id';
 
 interface DiceResult {
+  id: string;
   dice: string;
   rolls: number[];
   total: number;
-  timestamp: number;
 }
 
 const DICE_TYPES = [4, 6, 8, 10, 12, 20, 100];
@@ -23,10 +23,10 @@ const DICE_TYPES = [4, 6, 8, 10, 12, 20, 100];
 interface Props {
   visible: boolean;
   onClose: () => void;
+  scheme: ColorScheme;
 }
 
-export default function DiceModal({ visible, onClose }: Props) {
-  const scheme = COLOR_SCHEMES[DEFAULT_SCHEME];
+export default function DiceModal({ visible, onClose, scheme }: Props) {
   const [count, setCount] = useState(1);
   const [selectedDie, setSelectedDie] = useState(6);
   const [modifier, setModifier] = useState(0);
@@ -38,10 +38,10 @@ export default function DiceModal({ visible, onClose }: Props) {
     );
     const total = rolls.reduce((a, b) => a + b, 0) + modifier;
     const result: DiceResult = {
+      id: generateId(),
       dice: `${count}d${selectedDie}${modifier !== 0 ? (modifier > 0 ? `+${modifier}` : modifier) : ''}`,
       rolls,
       total,
-      timestamp: Date.now(),
     };
     setHistory((h) => [result, ...h.slice(0, 19)]);
   };
@@ -63,10 +63,10 @@ export default function DiceModal({ visible, onClose }: Props) {
 
     const event = chaos <= 2 ? ' [Random Event!]' : '';
     const result: DiceResult = {
+      id: generateId(),
       dice: `OPSE Oracle (${d6a}+${d6b}, chaos:${chaos})`,
       rolls: [d6a, d6b, chaos],
       total: sum,
-      timestamp: Date.now(),
     };
     // Overwrite total display with text
     setHistory((h) => [
@@ -79,9 +79,9 @@ export default function DiceModal({ visible, onClose }: Props) {
   };
 
   return (
-    <ModalSheet visible={visible} onClose={onClose} maxHeight="85%">
+    <ModalSheet visible={visible} onClose={onClose} scheme={scheme} maxHeight="85%">
       <View style={styles.header}>
-        <Text style={styles.title}>Dice Roller</Text>
+        <Text style={[styles.title, { color: scheme.text }]}>Dice Roller</Text>
         <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={[styles.close, { color: scheme.textSecondary }]}>✕</Text>
         </TouchableOpacity>
@@ -186,9 +186,9 @@ export default function DiceModal({ visible, onClose }: Props) {
             Roll some dice!
           </Text>
         ) : null}
-        {history.map((r, i) => (
+        {history.map((r) => (
           <View
-            key={r.timestamp + i}
+            key={r.id}
             style={[
               styles.historyItem,
               { borderBottomColor: scheme.surfaceBorder },
@@ -223,7 +223,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#e8eeff',
   },
   close: {
     fontSize: 20,

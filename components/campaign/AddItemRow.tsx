@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TextInput,
   StyleSheet,
-  Modal,
-  TouchableWithoutFeedback,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
-import GlassCard from '../ui/GlassCard';
 import GlassButton from '../ui/GlassButton';
+import ModalOverlay from '../ui/ModalOverlay';
 
 interface Props {
   visible: boolean;
@@ -48,102 +43,71 @@ export default function AddItemRow({
   };
 
   return (
-    <Modal
+    <ModalOverlay
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
+      onClose={onCancel}
+      scheme={scheme}
+      title={title}
+      maxWidth={460}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <TouchableWithoutFeedback onPress={onCancel}>
-          <View style={styles.overlay}>
-            <TouchableWithoutFeedback onPress={() => {}}>
-              <GlassCard scheme={scheme} style={styles.modal}>
-                {title ? (
-                  <Text style={[styles.title, { color: scheme.text }]}>{title}</Text>
-                ) : null}
-                <TextInput
-                  value={name}
-                  onChangeText={setName}
-                  placeholder={namePlaceholder}
-                  placeholderTextColor={scheme.textMuted}
-                  style={[
-                    styles.input,
-                    {
-                      color: scheme.text,
-                      borderColor: scheme.surfaceBorder,
-                      backgroundColor: scheme.primaryMuted,
-                    },
-                  ]}
-                  selectionColor={scheme.primary}
-                  autoFocus
-                />
-                <TextInput
-                  value={desc}
-                  onChangeText={setDesc}
-                  placeholder={descPlaceholder}
-                  placeholderTextColor={scheme.textMuted}
-                  multiline
-                  textAlignVertical="top"
-                  style={[
-                    styles.input,
-                    styles.descInput,
-                    {
-                      color: scheme.text,
-                      borderColor: scheme.surfaceBorder,
-                      backgroundColor: scheme.primaryMuted,
-                    },
-                  ]}
-                  selectionColor={scheme.primary}
-                />
-                <View style={styles.actions}>
-                  <GlassButton
-                    label="Cancel"
-                    onPress={onCancel}
-                    scheme={scheme}
-                    variant="ghost"
-                    small
-                    style={{ flex: 1 }}
-                  />
-                  <GlassButton
-                    label="Add"
-                    onPress={handleAdd}
-                    scheme={scheme}
-                    variant="primary"
-                    small
-                    style={{ flex: 1 }}
-                    disabled={!name.trim()}
-                  />
-                </View>
-              </GlassCard>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </Modal>
+      <TextInput
+        value={name}
+        onChangeText={setName}
+        placeholder={namePlaceholder}
+        placeholderTextColor={scheme.textMuted}
+        style={[
+          styles.input,
+          {
+            color: scheme.text,
+            borderColor: scheme.surfaceBorder,
+            backgroundColor: scheme.primaryMuted,
+          },
+        ]}
+        selectionColor={scheme.primary}
+        autoFocus
+      />
+      <TextInput
+        value={desc}
+        onChangeText={setDesc}
+        placeholder={descPlaceholder}
+        placeholderTextColor={scheme.textMuted}
+        multiline
+        textAlignVertical="top"
+        style={[
+          styles.input,
+          styles.descInput,
+          {
+            color: scheme.text,
+            borderColor: scheme.surfaceBorder,
+            backgroundColor: scheme.primaryMuted,
+          },
+        ]}
+        selectionColor={scheme.primary}
+      />
+      <View style={styles.actions}>
+        <GlassButton
+          label="Cancel"
+          onPress={onCancel}
+          scheme={scheme}
+          variant="ghost"
+          small
+          style={{ flex: 1 }}
+        />
+        <GlassButton
+          label="Add"
+          onPress={handleAdd}
+          scheme={scheme}
+          variant="primary"
+          small
+          style={{ flex: 1 }}
+          disabled={!name.trim()}
+        />
+      </View>
+    </ModalOverlay>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modal: {
-    maxWidth: 460,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
   input: {
     borderWidth: 1,
     borderRadius: 10,

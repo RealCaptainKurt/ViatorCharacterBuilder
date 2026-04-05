@@ -3,16 +3,12 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  Modal,
   StyleSheet,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
-import GlassCard from './GlassCard';
 import GlassButton from './GlassButton';
+import ModalOverlay from './ModalOverlay';
 
 interface Props {
   content: string;
@@ -55,67 +51,50 @@ export default function TextContentRow({
         <Text style={[styles.editIcon, { color: scheme.textMuted }]}>✎</Text>
       </TouchableOpacity>
 
-      <Modal
+      <ModalOverlay
         visible={editing}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditing(false)}
+        onClose={() => setEditing(false)}
+        scheme={scheme}
+        title={title}
+        maxWidth={460}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <TouchableWithoutFeedback onPress={() => setEditing(false)}>
-            <View style={styles.overlay}>
-              <TouchableWithoutFeedback onPress={() => {}}>
-                <GlassCard scheme={scheme} style={styles.modal}>
-                  {title ? (
-                    <Text style={[styles.title, { color: scheme.text }]}>
-                      {title}
-                    </Text>
-                  ) : null}
-                  <TextInput
-                    value={draft}
-                    onChangeText={setDraft}
-                    multiline
-                    autoFocus
-                    textAlignVertical="top"
-                    style={[
-                      styles.input,
-                      {
-                        color: scheme.text,
-                        borderColor: scheme.surfaceBorder,
-                        backgroundColor: scheme.primaryMuted,
-                      },
-                    ]}
-                    placeholder={placeholder}
-                    placeholderTextColor={scheme.textMuted}
-                    selectionColor={scheme.primary}
-                  />
-                  <View style={styles.actions}>
-                    <GlassButton
-                      label="Cancel"
-                      onPress={() => setEditing(false)}
-                      scheme={scheme}
-                      variant="ghost"
-                      small
-                      style={{ flex: 1 }}
-                    />
-                    <GlassButton
-                      label="Save"
-                      onPress={handleSave}
-                      scheme={scheme}
-                      variant="primary"
-                      small
-                      style={{ flex: 1 }}
-                    />
-                  </View>
-                </GlassCard>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </Modal>
+        <TextInput
+          value={draft}
+          onChangeText={setDraft}
+          multiline
+          autoFocus
+          textAlignVertical="top"
+          style={[
+            styles.input,
+            {
+              color: scheme.text,
+              borderColor: scheme.surfaceBorder,
+              backgroundColor: scheme.primaryMuted,
+            },
+          ]}
+          placeholder={placeholder}
+          placeholderTextColor={scheme.textMuted}
+          selectionColor={scheme.primary}
+        />
+        <View style={styles.actions}>
+          <GlassButton
+            label="Cancel"
+            onPress={() => setEditing(false)}
+            scheme={scheme}
+            variant="ghost"
+            small
+            style={{ flex: 1 }}
+          />
+          <GlassButton
+            label="Save"
+            onPress={handleSave}
+            scheme={scheme}
+            variant="primary"
+            small
+            style={{ flex: 1 }}
+          />
+        </View>
+      </ModalOverlay>
     </>
   );
 }
@@ -140,22 +119,6 @@ const styles = StyleSheet.create({
   editIcon: {
     fontSize: 16,
     paddingTop: 2,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modal: {
-    maxWidth: 460,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12,
   },
   input: {
     borderWidth: 1,

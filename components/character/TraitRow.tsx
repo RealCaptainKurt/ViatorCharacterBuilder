@@ -3,18 +3,14 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   StyleSheet,
-  Modal,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
 import { Trait } from '../../types';
-import GlassCard from '../ui/GlassCard';
 import GlassInput from '../ui/GlassInput';
 import GlassButton from '../ui/GlassButton';
+import ModalOverlay from '../ui/ModalOverlay';
 
 interface Props {
   trait: Trait;
@@ -52,10 +48,7 @@ export default function TraitRow({ trait, scheme, onUpdate, onRemove }: Props) {
           setEditing(true);
         }}
         activeOpacity={0.8}
-        style={[
-          styles.row,
-          { borderBottomColor: scheme.surfaceBorder },
-        ]}
+        style={[styles.row, { borderBottomColor: scheme.surfaceBorder }]}
       >
         <Text style={[styles.name, { color: scheme.text }]}>{trait.name}</Text>
         <View style={styles.pips}>
@@ -77,103 +70,85 @@ export default function TraitRow({ trait, scheme, onUpdate, onRemove }: Props) {
         </View>
       </TouchableOpacity>
 
-      <Modal
+      <ModalOverlay
         visible={editing}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditing(false)}
+        onClose={() => setEditing(false)}
+        scheme={scheme}
+        title="Edit Trait"
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <TouchableWithoutFeedback onPress={() => setEditing(false)}>
-            <View style={styles.overlay}>
-              <TouchableWithoutFeedback onPress={() => {}}>
-                <GlassCard scheme={scheme} style={styles.modal}>
-            <Text style={[styles.modalTitle, { color: scheme.text }]}>
-              Edit Trait
-            </Text>
+        <GlassInput
+          scheme={scheme}
+          label="Trait Name"
+          value={editName}
+          onChangeText={setEditName}
+          placeholder="e.g. Swordsmanship"
+          containerStyle={styles.inputContainer}
+        />
 
-            <GlassInput
-              scheme={scheme}
-              label="Trait Name"
-              value={editName}
-              onChangeText={setEditName}
-              placeholder="e.g. Swordsmanship"
-              containerStyle={styles.inputContainer}
-            />
+        <Text style={[styles.levelLabel, { color: scheme.textSecondary }]}>
+          Level
+        </Text>
+        <View style={styles.levelRow}>
+          {LEVELS.map((l) => (
+            <TouchableOpacity
+              key={l}
+              onPress={() => setEditLevel(l)}
+              style={[
+                styles.levelBtn,
+                {
+                  backgroundColor:
+                    editLevel >= l
+                      ? scheme.levelColors[editLevel - 1]
+                      : scheme.surface,
+                  borderColor:
+                    editLevel >= l ? scheme.primary : scheme.surfaceBorder,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.levelBtnText,
+                  {
+                    color: editLevel >= l ? scheme.text : scheme.textMuted,
+                  },
+                ]}
+              >
+                {l}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-            <Text style={[styles.levelLabel, { color: scheme.textSecondary }]}>
-              Level
-            </Text>
-            <View style={styles.levelRow}>
-              {LEVELS.map((l) => (
-                <TouchableOpacity
-                  key={l}
-                  onPress={() => setEditLevel(l)}
-                  style={[
-                    styles.levelBtn,
-                    {
-                      backgroundColor:
-                        editLevel >= l
-                          ? scheme.levelColors[editLevel - 1]
-                          : scheme.surface,
-                      borderColor:
-                        editLevel >= l ? scheme.primary : scheme.surfaceBorder,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.levelBtnText,
-                      {
-                        color:
-                          editLevel >= l ? scheme.text : scheme.textMuted,
-                      },
-                    ]}
-                  >
-                    {l}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={styles.actions}>
-              <GlassButton
-                label="Remove"
-                onPress={() => {
-                  setEditing(false);
-                  setTimeout(handleRemove, 200);
-                }}
-                scheme={scheme}
-                variant="destructive"
-                small
-                style={styles.actionBtn}
-              />
-              <GlassButton
-                label="Cancel"
-                onPress={() => setEditing(false)}
-                scheme={scheme}
-                variant="ghost"
-                small
-                style={styles.actionBtn}
-              />
-              <GlassButton
-                label="Save"
-                onPress={handleSave}
-                scheme={scheme}
-                variant="primary"
-                small
-                style={styles.actionBtn}
-              />
-            </View>
-                </GlassCard>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </Modal>
+        <View style={styles.actions}>
+          <GlassButton
+            label="Remove"
+            onPress={() => {
+              setEditing(false);
+              setTimeout(handleRemove, 200);
+            }}
+            scheme={scheme}
+            variant="destructive"
+            small
+            style={styles.actionBtn}
+          />
+          <GlassButton
+            label="Cancel"
+            onPress={() => setEditing(false)}
+            scheme={scheme}
+            variant="ghost"
+            small
+            style={styles.actionBtn}
+          />
+          <GlassButton
+            label="Save"
+            onPress={handleSave}
+            scheme={scheme}
+            variant="primary"
+            small
+            style={styles.actionBtn}
+          />
+        </View>
+      </ModalOverlay>
     </>
   );
 }
@@ -200,22 +175,6 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 1,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modal: {
-    maxWidth: 420,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
   },
   inputContainer: {
     marginBottom: 16,

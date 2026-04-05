@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { COLOR_SCHEMES } from '../../constants/colorSchemes';
-import { Campaign, AdditionalListComponent } from '../../types';
+import { Campaign, AdditionalListComponent, CollapsedSections } from '../../types';
 import { useAppStore } from '../../store/appStore';
 import GlassCard from '../ui/GlassCard';
 import CollapsibleSection from '../ui/CollapsibleSection';
@@ -15,16 +15,12 @@ import TextContentRow from '../ui/TextContentRow';
 import NamedItemRow from './NamedItemRow';
 import AddItemRow from './AddItemRow';
 
-type ListKey = 'currentSceneEvents' | 'npcs' | 'locations' | 'scenes';
+type ListKey = 'npcs' | 'locations' | 'scenes';
 
 interface Props {
   campaign: Campaign;
   isStandalone?: boolean;
   schemeOverride?: import('../../constants/colorSchemes').ColorScheme;
-}
-
-interface CollapsedState {
-  [key: string]: boolean;
 }
 
 type AddingState = {
@@ -45,8 +41,8 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
     removeCampaignComponentListItem,
   } = useAppStore();
 
-  const [collapsed, setCollapsed] = useState<CollapsedState>({
-    currentSceneEvents: false,
+  const [collapsed, setCollapsed] = useState<CollapsedSections>({
+    currentScene: false,
     npcs: true,
     locations: true,
     scenes: true,
@@ -63,7 +59,6 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
   const stopAdding = () => setAdding({ key: null });
 
   const LISTS: { key: ListKey; label: string; accentColor?: string }[] = [
-    { key: 'currentSceneEvents', label: 'Current Scene' },
     { key: 'npcs', label: 'Characters', accentColor: scheme.levelColors[3] },
     { key: 'locations', label: 'Locations', accentColor: scheme.levelColors[1] },
     { key: 'scenes', label: 'Scenes', accentColor: scheme.levelColors[4] },
@@ -84,6 +79,22 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
           />
         </View>
       )}
+
+      {/* ── Current Scene (text) ────────────────── */}
+      <CollapsibleSection
+        title="Current Scene"
+        scheme={scheme}
+        collapsed={collapsed.currentScene ?? false}
+        onToggle={() => toggle('currentScene')}
+      >
+        <TextContentRow
+          content={campaign.currentScene}
+          scheme={scheme}
+          placeholder="Tap to describe the current scene..."
+          title="Current Scene"
+          onSave={(v) => updateCampaignField(campaign.id, 'currentScene', v)}
+        />
+      </CollapsibleSection>
 
       {/* ── Standard lists ──────────────────────── */}
       {LISTS.map(({ key, label, accentColor }) => (

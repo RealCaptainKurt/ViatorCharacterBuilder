@@ -4,9 +4,8 @@ import {
   Campaign,
   ColorSchemeId,
   Trait,
-  TextComponent,
   NamedItem,
-  AdditionalCampaignComponent,
+  AdditionalComponent,
 } from '../types';
 import {
   loadCharacters,
@@ -67,13 +66,35 @@ interface AppState {
   ) => void;
   removeTrait: (characterId: string, traitId: string) => void;
 
-  // Additional text components on character
-  addCharacterComponent: (characterId: string, name: string) => void;
-  updateCharacterComponent: (
+  // Additional components on character (text or list)
+  addCharacterComponent: (
+    characterId: string,
+    type: 'text' | 'list',
+    name: string
+  ) => void;
+  updateCharacterComponentText: (
     characterId: string,
     componentId: string,
     name: string,
     content: string
+  ) => void;
+  addCharacterComponentListItem: (
+    characterId: string,
+    componentId: string,
+    name: string,
+    description: string
+  ) => void;
+  updateCharacterComponentListItem: (
+    characterId: string,
+    componentId: string,
+    itemId: string,
+    name: string,
+    description: string
+  ) => void;
+  removeCharacterComponentListItem: (
+    characterId: string,
+    componentId: string,
+    itemId: string
   ) => void;
   removeCharacterComponent: (characterId: string, componentId: string) => void;
 
@@ -90,20 +111,20 @@ interface AppState {
   // Named item lists
   addCampaignListItem: (
     campaignId: string,
-    list: 'currentSceneEvents' | 'npcs' | 'locations' | 'scenes',
+    list: 'npcs' | 'locations' | 'scenes',
     name: string,
     description: string
   ) => void;
   updateCampaignListItem: (
     campaignId: string,
-    list: 'currentSceneEvents' | 'npcs' | 'locations' | 'scenes',
+    list: 'npcs' | 'locations' | 'scenes',
     itemId: string,
     name: string,
     description: string
   ) => void;
   removeCampaignListItem: (
     campaignId: string,
-    list: 'currentSceneEvents' | 'npcs' | 'locations' | 'scenes',
+    list: 'npcs' | 'locations' | 'scenes',
     itemId: string
   ) => void;
 
@@ -168,6 +189,37 @@ export const useAppStore = create<AppState>((set, get) => ({
       loadCampaigns(),
       loadActiveEntry(),
     ]);
+
+    // Migrate old character components: add `type: 'text'` if missing
+    for (const char of Object.values(characters)) {
+      let migrated = false;
+      const updated = char.additionalComponents.map((c: any) => {
+        if (!c.type) {
+          migrated = true;
+          return { ...c, type: 'text' as const };
+        }
+        return c;
+      });
+      if (migrated) {
+        characters[char.id] = { ...char, additionalComponents: updated };
+        persistChar(characters[char.id]);
+      }
+    }
+
+    // Migrate old campaigns: currentSceneEvents → currentScene
+    for (const camp of Object.values(campaigns)) {
+      const raw = camp as any;
+      if (raw.currentSceneEvents !== undefined && raw.currentScene === undefined) {
+        const sceneText = (raw.currentSceneEvents as any[])
+          .map((e: any) => (e.description ? `${e.name}: ${e.description}` : e.name))
+          .join('\n');
+        const migrated = { ...camp, currentScene: sceneText };
+        delete (migrated as any).currentSceneEvents;
+        campaigns[camp.id] = migrated;
+        persistCamp(campaigns[camp.id]);
+      }
+    }
+
     set({
       characters,
       campaigns,
@@ -259,11 +311,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  addCharacterComponent: (characterId, name) => {
+  addCharacterComponent: (characterId, type, name) => {
     set((s) => {
       const char = s.characters[characterId];
       if (!char) return s;
-      const comp: TextComponent = { id: generateId(), name, content: '' };
+      const comp: AdditionalComponent =
+        type === 'text'
+          ? { id: generateId(), type: 'text', name, content: '' }
+          : { id: generateId(), type: 'list', name, items: [] };
       const updated = {
         ...char,
         additionalComponents: [...char.additionalComponents, comp],
@@ -274,15 +329,80 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  updateCharacterComponent: (characterId, componentId, name, content) => {
+  updateCharacterComponentText: (characterId, componentId, name, content) => {
     set((s) => {
       const char = s.characters[characterId];
       if (!char) return s;
       const updated = {
         ...char,
         additionalComponents: char.additionalComponents.map((c) =>
-          c.id === componentId ? { ...c, name, content } : c
+          c.id === componentId && c.type === 'text'
+            ? { ...c, name, content }
+            : c
         ),
+        updatedAt: Date.now(),
+      };
+      persistChar(updated);
+      return { characters: { ...s.characters, [characterId]: updated } };
+    });
+  },
+
+  addCharacterComponentListItem: (characterId, componentId, name, description) => {
+    set((s) => {
+      const char = s.characters[characterId];
+      if (!char) return s;
+      const updated = {
+        ...char,
+        additionalComponents: char.additionalComponents.map((c) => {
+          if (c.id === componentId && c.type === 'list') {
+            const item: NamedItem = { id: generateId(), name, description };
+            return { ...c, items: [...c.items, item] };
+          }
+          return c;
+        }),
+        updatedAt: Date.now(),
+      };
+      persistChar(updated);
+      return { characters: { ...s.characters, [characterId]: updated } };
+    });
+  },
+
+  updateCharacterComponentListItem: (characterId, componentId, itemId, name, description) => {
+    set((s) => {
+      const char = s.characters[characterId];
+      if (!char) return s;
+      const updated = {
+        ...char,
+        additionalComponents: char.additionalComponents.map((c) => {
+          if (c.id === componentId && c.type === 'list') {
+            return {
+              ...c,
+              items: c.items.map((i) =>
+                i.id === itemId ? { ...i, name, description } : i
+              ),
+            };
+          }
+          return c;
+        }),
+        updatedAt: Date.now(),
+      };
+      persistChar(updated);
+      return { characters: { ...s.characters, [characterId]: updated } };
+    });
+  },
+
+  removeCharacterComponentListItem: (characterId, componentId, itemId) => {
+    set((s) => {
+      const char = s.characters[characterId];
+      if (!char) return s;
+      const updated = {
+        ...char,
+        additionalComponents: char.additionalComponents.map((c) => {
+          if (c.id === componentId && c.type === 'list') {
+            return { ...c, items: c.items.filter((i) => i.id !== itemId) };
+          }
+          return c;
+        }),
         updatedAt: Date.now(),
       };
       persistChar(updated);
@@ -324,7 +444,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const camp: Campaign = {
       id: generateId(),
       name,
-      currentSceneEvents: [],
+      currentScene: '',
       npcs: [],
       locations: [],
       scenes: [],
@@ -398,7 +518,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((s) => {
       const camp = s.campaigns[campaignId];
       if (!camp) return s;
-      const comp: AdditionalCampaignComponent =
+      const comp: AdditionalComponent =
         type === 'text'
           ? { id: generateId(), type: 'text', name, content: '' }
           : { id: generateId(), type: 'list', name, items: [] };

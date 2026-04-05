@@ -7,13 +7,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ViewStyle,
+  DimensionValue,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { ColorScheme } from '../../constants/colorSchemes';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  maxHeight?: string | number;
+  scheme: ColorScheme;
+  maxHeight?: DimensionValue;
   keyboardAvoiding?: boolean;
   contentStyle?: ViewStyle;
   children: React.ReactNode;
@@ -28,6 +31,7 @@ interface Props {
 export default function ModalSheet({
   visible,
   onClose,
+  scheme,
   maxHeight = '85%',
   keyboardAvoiding = false,
   contentStyle,
@@ -35,7 +39,7 @@ export default function ModalSheet({
 }: Props) {
   const inner = (
     <View style={styles.backdrop}>
-      <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFillObject} />
+      <BlurView intensity={30} tint={scheme.blurTint} style={StyleSheet.absoluteFillObject} />
 
       {/* Full-screen dismiss target — sits behind the sheet in z-order */}
       <TouchableWithoutFeedback onPress={onClose}>
@@ -44,9 +48,9 @@ export default function ModalSheet({
 
       {/* Sheet — absolutely pinned to the bottom, rendered above dismiss target */}
       <TouchableWithoutFeedback>
-        <View style={[styles.sheet, { maxHeight }]}>
-          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFillObject} />
-          <View style={[styles.sheetInner, contentStyle]}>
+        <View style={[styles.sheet, { maxHeight, borderColor: scheme.surfaceBorder }]}>
+          <BlurView intensity={40} tint={scheme.blurTint} style={StyleSheet.absoluteFillObject} />
+          <View style={[styles.sheetInner, { backgroundColor: scheme.surface }, contentStyle]}>
             {children}
           </View>
         </View>
@@ -88,11 +92,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: 'rgba(100,140,255,0.2)',
   },
   sheetInner: {
     padding: 24,
     flex: 1,
-    backgroundColor: 'rgba(10,14,30,0.88)',
   },
 });

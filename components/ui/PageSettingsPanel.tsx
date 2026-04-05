@@ -135,8 +135,9 @@ export default function PageSettingsPanel({
 
   const handleAddCharComp = () => {
     if (!newCompName.trim() || !activeCharacterId) return;
-    addCharacterComponent(activeCharacterId, newCompName.trim());
+    addCharacterComponent(activeCharacterId, newCompType, newCompName.trim());
     setNewCompName('');
+    setNewCompType('text');
     setAddingComp(false);
   };
 
@@ -186,7 +187,12 @@ export default function PageSettingsPanel({
             key={comp.id}
             style={[styles.compRow, { borderBottomColor: scheme.surfaceBorder }]}
           >
-            <Text style={[styles.compName, { color: scheme.text }]}>{comp.name}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.compName, { color: scheme.text }]}>{comp.name}</Text>
+              <Text style={[styles.compType, { color: scheme.textMuted }]}>
+                {comp.type === 'list' ? 'List' : 'Text'}
+              </Text>
+            </View>
             <TouchableOpacity
               onPress={() => handleRemoveCharComp(comp.id, comp.name)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -221,13 +227,13 @@ export default function PageSettingsPanel({
           visible={addingComp && editMode === 'char'}
           transparent
           animationType="fade"
-          onRequestClose={() => { setAddingComp(false); setNewCompName(''); }}
+          onRequestClose={() => { setAddingComp(false); setNewCompName(''); setNewCompType('text'); }}
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
           >
-            <TouchableWithoutFeedback onPress={() => { setAddingComp(false); setNewCompName(''); }}>
+            <TouchableWithoutFeedback onPress={() => { setAddingComp(false); setNewCompName(''); setNewCompType('text'); }}>
               <View style={styles.modalOverlay}>
                 <TouchableWithoutFeedback onPress={() => {}}>
                   <GlassCard scheme={scheme} style={styles.modalCard}>
@@ -248,11 +254,41 @@ export default function PageSettingsPanel({
                         },
                       ]}
                       autoFocus
+                      selectionColor={scheme.primary}
                     />
+                    <View style={styles.typeRow}>
+                      {(['text', 'list'] as const).map((t) => (
+                        <TouchableOpacity
+                          key={t}
+                          onPress={() => setNewCompType(t)}
+                          style={[
+                            styles.typeBtn,
+                            {
+                              backgroundColor:
+                                newCompType === t ? scheme.primaryMuted : scheme.surface,
+                              borderColor:
+                                newCompType === t ? scheme.primary : scheme.surfaceBorder,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.typeBtnText,
+                              {
+                                color:
+                                  newCompType === t ? scheme.primary : scheme.textSecondary,
+                              },
+                            ]}
+                          >
+                            {t === 'text' ? '📝 Text' : '📋 List'}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                     <View style={styles.modalActions}>
                       <GlassButton
                         label="Cancel"
-                        onPress={() => { setAddingComp(false); setNewCompName(''); }}
+                        onPress={() => { setAddingComp(false); setNewCompName(''); setNewCompType('text'); }}
                         scheme={scheme}
                         variant="ghost"
                         small
@@ -370,6 +406,7 @@ export default function PageSettingsPanel({
                         },
                       ]}
                       autoFocus
+                      selectionColor={scheme.primary}
                     />
                     <View style={styles.typeRow}>
                       {(['text', 'list'] as const).map((t) => (
@@ -387,13 +424,14 @@ export default function PageSettingsPanel({
                           ]}
                         >
                           <Text
-                            style={{
-                              color: newCompType === t ? scheme.primary : scheme.textMuted,
-                              fontSize: 13,
-                              fontWeight: '600',
-                            }}
+                            style={[
+                              styles.typeBtnText,
+                              {
+                                color: newCompType === t ? scheme.primary : scheme.textMuted,
+                              },
+                            ]}
                           >
-                            {t === 'text' ? 'Text Box' : 'List'}
+                            {t === 'text' ? '📝 Text' : '📋 List'}
                           </Text>
                         </TouchableOpacity>
                       ))}
@@ -645,6 +683,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 7,
     alignItems: 'center',
+  },
+  typeBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   addSectionBtn: {
     marginTop: 10,

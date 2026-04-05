@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   StatusBar,
   PanResponder,
-  Animated,
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -51,32 +50,25 @@ export default function MainScreen() {
   const schemeId =
     activeChar?.colorScheme ?? activeCamp?.colorScheme ?? DEFAULT_SCHEME;
   const scheme = COLOR_SCHEMES[schemeId];
+  const defaultScheme = COLOR_SCHEMES[DEFAULT_SCHEME];
 
   // Swipe-to-open gesture for sidebar
-  const panX = useRef(new Animated.Value(0)).current;
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gs) =>
         Math.abs(gs.dx) > 8 && Math.abs(gs.dy) < 40 && gs.dx > 0,
-      onPanResponderMove: (_, gs) => {
-        if (gs.dx > 0) panX.setValue(gs.dx);
-      },
       onPanResponderRelease: (_, gs) => {
         if (gs.dx > SWIPE_THRESHOLD) {
           openSidebar();
         }
-        Animated.spring(panX, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
       },
     })
   ).current;
 
   if (!isLoaded) {
     return (
-      <View style={[styles.loadingScreen, { backgroundColor: '#0a0e1a' }]}>
-        <Text style={styles.loadingText}>Viator</Text>
+      <View style={[styles.loadingScreen, { backgroundColor: defaultScheme.background }]}>
+        <Text style={[styles.loadingText, { color: defaultScheme.text }]}>Viator</Text>
       </View>
     );
   }
@@ -89,7 +81,7 @@ export default function MainScreen() {
 
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={scheme.blurTint === 'light' ? 'dark-content' : 'light-content'} />
       <LinearGradient
         colors={[scheme.backgroundGradientStart, scheme.backgroundGradientEnd]}
         style={StyleSheet.absoluteFillObject}
@@ -204,13 +196,10 @@ export default function MainScreen() {
       <Sidebar
         visible={isSidebarOpen}
         onClose={closeSidebar}
+        scheme={scheme}
         onNewGame={() => {
           closeSidebar();
           router.push('/new-game');
-        }}
-        onSettings={() => {
-          closeSidebar();
-          setShowPageSettings(true);
         }}
         onDiceRolls={() => {
           closeSidebar();
@@ -223,7 +212,7 @@ export default function MainScreen() {
       />
 
       {/* ── Modals ─────────────────────────────────── */}
-      <DiceModal visible={showDice} onClose={() => setShowDice(false)} />
+      <DiceModal visible={showDice} onClose={() => setShowDice(false)} scheme={scheme} />
     </View>
   );
 }
@@ -324,7 +313,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#e8eeff',
     letterSpacing: 1,
   },
 });

@@ -3,18 +3,14 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   StyleSheet,
-  Modal,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
 import { NamedItem } from '../../types';
-import GlassCard from '../ui/GlassCard';
 import GlassInput from '../ui/GlassInput';
 import GlassButton from '../ui/GlassButton';
+import ModalOverlay from '../ui/ModalOverlay';
 
 interface Props {
   item: NamedItem;
@@ -77,77 +73,63 @@ export default function NamedItemRow({
         </TouchableOpacity>
       </TouchableOpacity>
 
-      <Modal
+      <ModalOverlay
         visible={editing}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditing(false)}
+        onClose={() => setEditing(false)}
+        scheme={scheme}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <TouchableWithoutFeedback onPress={() => setEditing(false)}>
-            <View style={styles.overlay}>
-              <TouchableWithoutFeedback onPress={() => {}}>
-                <GlassCard scheme={scheme} style={styles.modal}>
-            <GlassInput
-              scheme={scheme}
-              label="Name"
-              value={editName}
-              onChangeText={setEditName}
-              containerStyle={{ marginBottom: 12 }}
-            />
-            <GlassInput
-              scheme={scheme}
-              label="Description"
-              value={editDesc}
-              onChangeText={setEditDesc}
-              multiline
-              minHeight={80}
-              containerStyle={{ marginBottom: 20 }}
-            />
-            <View style={styles.actions}>
-              <GlassButton
-                label="Remove"
-                onPress={() => {
-                  setEditing(false);
-                  setTimeout(() => {
-                    Alert.alert('Remove', `Remove "${item.name}"?`, [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Remove', style: 'destructive', onPress: onRemove },
-                    ]);
-                  }, 200);
-                }}
-                scheme={scheme}
-                variant="destructive"
-                small
-                style={{ flex: 1 }}
-              />
-              <GlassButton
-                label="Cancel"
-                onPress={() => setEditing(false)}
-                scheme={scheme}
-                variant="ghost"
-                small
-                style={{ flex: 1 }}
-              />
-              <GlassButton
-                label="Save"
-                onPress={handleSave}
-                scheme={scheme}
-                variant="primary"
-                small
-                style={{ flex: 1 }}
-                disabled={!editName.trim()}
-              />
-            </View>
-                </GlassCard>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </Modal>
+        <GlassInput
+          scheme={scheme}
+          label="Name"
+          value={editName}
+          onChangeText={setEditName}
+          containerStyle={{ marginBottom: 12 }}
+        />
+        <GlassInput
+          scheme={scheme}
+          label="Description"
+          value={editDesc}
+          onChangeText={setEditDesc}
+          multiline
+          minHeight={80}
+          containerStyle={{ marginBottom: 20 }}
+        />
+        <View style={styles.actions}>
+          <GlassButton
+            label="Remove"
+            onPress={() => {
+              setEditing(false);
+              setTimeout(() => {
+                Alert.alert('Remove', `Remove "${item.name}"?`, [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Remove', style: 'destructive', onPress: onRemove },
+                ]);
+              }, 200);
+            }}
+            scheme={scheme}
+            variant="destructive"
+            small
+            style={{ flex: 1 }}
+          />
+          <GlassButton
+            label="Cancel"
+            onPress={() => setEditing(false)}
+            scheme={scheme}
+            variant="ghost"
+            small
+            style={{ flex: 1 }}
+          />
+          <GlassButton
+            label="Save"
+            onPress={handleSave}
+            scheme={scheme}
+            variant="primary"
+            small
+            style={{ flex: 1 }}
+            disabled={!editName.trim()}
+          />
+        </View>
+      </ModalOverlay>
     </>
   );
 }
@@ -178,17 +160,6 @@ const styles = StyleSheet.create({
   editIcon: {
     fontSize: 16,
     paddingTop: 2,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modal: {
-    maxWidth: 420,
-    alignSelf: 'center',
-    width: '100%',
   },
   actions: {
     flexDirection: 'row',
