@@ -7,13 +7,24 @@ import { ColorScheme } from '../../constants/colorSchemes';
 import {
   rollActionFocus,
   rollDetailFocus,
+  rollDungeonLoot,
+  rollDungeonRoom,
+  rollDungeonTheme,
   rollFailureMove,
+  rollGroup,
   rollHowMuch,
+  rollNPC,
   rollOracle,
   rollPacingMove,
+  rollPlotHook,
   rollRandomEvent,
   rollSetScene,
   rollTopicFocus,
+  rollTown,
+  rollMagicPower,
+  rollRandomItem,
+  rollMagicItem,
+  rollWorld,
 } from '../../utils/oracle';
 import GlassButton from '../ui/GlassButton';
 import ModalSheet from './ModalSheet';
@@ -58,10 +69,10 @@ export default function OracleModal({ visible, onClose, scheme }: Props) {
           activeOpacity={0.7}
           style={[styles.closeBtn, { borderColor: scheme.surfaceBorder }]}
         >
-          <BlurView intensity={20} tint={scheme.blurTint} style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]} />
-          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: scheme.surface, borderRadius: 16 }]} />
-          <GlassHighlight borderRadius={16} />
-          <Ionicons name="close" size={16} color={scheme.textSecondary} />
+          <BlurView intensity={20} tint={scheme.blurTint} style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]} />
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: scheme.surface, borderRadius: 28 }]} />
+          <GlassHighlight borderRadius={28} />
+          <Ionicons name="close" size={22} color={scheme.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -74,7 +85,8 @@ export default function OracleModal({ visible, onClose, scheme }: Props) {
       >
         <ScrollView
           ref={scrollRef}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
+          nestedScrollEnabled
           contentContainerStyle={styles.resultsContent}
         >
           {results.length === 0 ? (
@@ -134,26 +146,26 @@ export default function OracleModal({ visible, onClose, scheme }: Props) {
           <View style={{ width: containerWidth }}>
             {/* Row 1: Dungeon */}
             <View style={styles.btnRow}>
-              <GlassButton label="Dungeon Theme" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
-              <GlassButton label="Dungeon Room" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
-              <GlassButton label="Dungeon Loot" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="Dungeon Theme" onPress={() => addResult(rollDungeonTheme())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="Dungeon Room" onPress={() => addResult(rollDungeonRoom())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="Dungeon Loot" onPress={() => addResult(rollDungeonLoot())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
             </View>
             {/* Row 2: People & Places */}
             <View style={styles.btnRow}>
-              <GlassButton label="NPC" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
-              <GlassButton label="Organization" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
-              <GlassButton label="Town" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="NPC" onPress={() => addResult(rollNPC())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="Group" onPress={() => addResult(rollGroup())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="Town" onPress={() => addResult(rollTown())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
             </View>
             {/* Row 3: Magic & Items */}
             <View style={styles.btnRow}>
-              <GlassButton label="Magic / Power" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
-              <GlassButton label="Random Item" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
-              <GlassButton label="Magic Item" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="Magic / Power" onPress={() => addResult(rollMagicPower())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="Random Item" onPress={() => addResult(rollRandomItem())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="Magic Item" onPress={() => addResult(rollMagicItem())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
             </View>
             {/* Row 4: Misc & Back */}
             <View style={styles.btnRow}>
-              <GlassButton label="Plot Hook" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
-              <GlassButton label="World" onPress={() => {}} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="Plot Hook" onPress={() => addResult(rollPlotHook())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
+              <GlassButton label="World" onPress={() => addResult(rollWorld())} scheme={scheme} variant="secondary" style={{ flex: 1 }} />
               <GlassButton label="< Back" onPress={goToPage1} scheme={scheme} variant="ghost" style={{ flex: 1 }} />
             </View>
           </View>
@@ -175,9 +187,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 1,
     overflow: 'hidden',
     alignItems: 'center',

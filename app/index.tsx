@@ -117,15 +117,6 @@ export default function MainScreen() {
           </TouchableOpacity>
 
           {hasContent && (
-            <Text
-              style={[styles.topTitle, { color: scheme.text }]}
-              numberOfLines={1}
-            >
-              {activeChar?.name ?? activeCamp?.name ?? ''}
-            </Text>
-          )}
-
-          {hasContent && (
             <TouchableOpacity
               onPress={() => setShowPageSettings((v) => !v)}
               style={styles.settingsBtn}
@@ -243,9 +234,9 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    gap: 12,
   },
   menuBtn: {
     width: 28,

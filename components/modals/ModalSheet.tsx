@@ -6,7 +6,6 @@ import {
   DimensionValue,
   KeyboardAvoidingView,
   Modal,
-  PanResponder,
   Platform,
   StyleSheet,
   TouchableWithoutFeedback,
@@ -17,8 +16,6 @@ import { ColorScheme } from '../../constants/colorSchemes';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SLIDE_DURATION = 320;
-const DISMISS_THRESHOLD = 120;
-const DISMISS_VELOCITY = 0.8;
 
 interface Props {
   visible: boolean;
@@ -36,8 +33,7 @@ interface Props {
  * from the bottom independently, avoiding the awkward
  * "blur-slides-with-content" look of animationType="slide".
  *
- * Swipe down anywhere on the sheet (header, handle, non-scroll content)
- * to dismiss. Swipe up resists and springs back.
+ * Dismiss by tapping the backdrop or the X button inside the modal.
  */
 export default function ModalSheet({
   visible,
@@ -51,48 +47,12 @@ export default function ModalSheet({
   const [showModal, setShowModal] = useState(false);
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const dragY = useRef(new Animated.Value(0)).current;
-  const totalTranslateY = useRef(Animated.add(sheetTranslateY, dragY)).current;
-
-  // Keep a stable ref to onClose so the PanResponder closure is never stale.
-  const onCloseRef = useRef(onClose);
-  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      // Claim the touch from the start. This is safe because React Native resolves
-      // the responder bottom-up: deeper views (TouchableOpacity, ScrollView) are
-      // asked first and win for their own areas. This view only wins for empty areas
-      // like the drag handle and the header background.
-      onStartShouldSetPanResponder: () => true,
-      // Don't steal from ScrollViews that already own the touch.
-      onMoveShouldSetPanResponder: () => false,
-      onPanResponderMove: (_, { dy }) => {
-        // Resist upward drags; allow downward drags 1:1.
-        dragY.setValue(dy < 0 ? dy * 0.25 : dy);
-      },
-      onPanResponderRelease: (_, { dy, vy }) => {
-        if (dy > DISMISS_THRESHOLD || vy > DISMISS_VELOCITY) {
-          Animated.parallel([
-            Animated.timing(backdropOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-            Animated.timing(dragY, { toValue: SCREEN_HEIGHT, duration: 250, useNativeDriver: true }),
-          ]).start(() => {
-            setShowModal(false);
-            onCloseRef.current();
-          });
-        } else {
-          Animated.spring(dragY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 8 }).start();
-        }
-      },
-    })
-  ).current;
 
   // Phase 1: mount/unmount the Modal.
   useEffect(() => {
     if (visible) {
       backdropOpacity.setValue(0);
       sheetTranslateY.setValue(SCREEN_HEIGHT);
-      dragY.setValue(0);
       setShowModal(true);
     } else if (showModal) {
       Animated.parallel([
@@ -100,7 +60,6 @@ export default function ModalSheet({
         Animated.timing(sheetTranslateY, { toValue: SCREEN_HEIGHT, duration: 280, useNativeDriver: true }),
       ]).start(() => {
         setShowModal(false);
-        dragY.setValue(0);
       });
     }
   }, [visible]);
@@ -136,23 +95,13 @@ export default function ModalSheet({
 
       {/* Sheet — slides up from bottom independently */}
       <Animated.View
-        style={[styles.sheetWrapper, { transform: [{ translateY: totalTranslateY }] }]}
+        style={[styles.sheetWrapper, { transform: [{ translateY: sheetTranslateY }] }]}
         pointerEvents="box-none"
       >
-        {/*
-          panHandlers on the sheet View itself — covers the drag handle, header,
-          and any non-scrollable area. onStartShouldSetPanResponder=false means
-          buttons still fire on tap; ScrollViews keep their responder while scrolling.
-        */}
         <View
           style={[styles.sheet, { height: resolvedHeight, borderColor: scheme.surfaceBorder }]}
-          {...panResponder.panHandlers}
         >
           <BlurView intensity={40} tint={scheme.blurTint} style={[StyleSheet.absoluteFillObject, { borderTopLeftRadius: 28, borderTopRightRadius: 28 }]} />
-          {/* Visual drag handle */}
-          <View style={styles.handleZone}>
-            <View style={[styles.handle, { backgroundColor: scheme.textMuted }]} />
-          </View>
           <View style={[styles.sheetInner, { backgroundColor: scheme.surface }, contentStyle]}>
             {children}
           </View>
@@ -197,18 +146,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-  },
-  handleZone: {
-    width: '100%',
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 6,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    opacity: 0.35,
   },
   sheetInner: {
     padding: 24,

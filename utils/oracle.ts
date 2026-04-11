@@ -1,69 +1,114 @@
 const d6 = (): number => Math.floor(Math.random() * 6) + 1;
 
-const CARD_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
-
-const SUIT_FULL = [
-  'Physical(ly)',
-  'Technical(ly)',
-  'Mystical(ly)',
-  'Social(ly)',
+const CARD_RANKS = [
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "T",
+  "J",
+  "Q",
+  "K",
+  "A",
 ];
 
-function drawCard(): { rank: string; suit: string } {
+const SUIT_ADVERB = ["Physically", "Technically", "Mystically", "Socially"];
+const SUIT_ADJECTIVE = ["Physical", "Technical", "Mystical", "Social"];
+
+function drawCard(): { rank: string; suitIndex: number } {
   return {
     rank: CARD_RANKS[Math.floor(Math.random() * 13)],
-    suit: SUIT_FULL[Math.floor(Math.random() * 4)],
+    suitIndex: Math.floor(Math.random() * 4),
   };
 }
 
 const ACTION_FOCUS: Record<string, string> = {
-  '2': 'Seek', '3': 'Oppose', '4': 'Communicate', '5': 'Move',
-  '6': 'Harm', '7': 'Create', '8': 'Reveal', '9': 'Command',
-  T: 'Take', J: 'Protect', Q: 'Assist', K: 'Transform', A: 'Deceive',
+  "2": "Seek",
+  "3": "Oppose",
+  "4": "Communicate",
+  "5": "Move",
+  "6": "Harm",
+  "7": "Create",
+  "8": "Reveal",
+  "9": "Command",
+  T: "Take",
+  J: "Protect",
+  Q: "Assist",
+  K: "Transform",
+  A: "Deceive",
 };
 
 const DETAIL_FOCUS: Record<string, string> = {
-  '2': 'Small', '3': 'Large', '4': 'Old', '5': 'New',
-  '6': 'Mundane', '7': 'Simple', '8': 'Complex', '9': 'Unsavory',
-  T: 'Specialized', J: 'Unexpected', Q: 'Exotic', K: 'Dignified', A: 'Unique',
+  "2": "Small",
+  "3": "Large",
+  "4": "Old",
+  "5": "New",
+  "6": "Mundane",
+  "7": "Simple",
+  "8": "Complex",
+  "9": "Unsavory",
+  T: "Specialized",
+  J: "Unexpected",
+  Q: "Exotic",
+  K: "Dignified",
+  A: "Unique",
 };
 
 const TOPIC_FOCUS: Record<string, string> = {
-  '2': 'Current Need', '3': 'Allies', '4': 'Community', '5': 'History',
-  '6': 'Future Plans', '7': 'Enemies', '8': 'Knowledge', '9': 'Rumors',
-  T: 'A Plot Arc', J: 'Recent Events', Q: 'Equipment', K: 'A Faction', A: 'The PCs',
+  "2": "Current Need",
+  "3": "Allies",
+  "4": "Community",
+  "5": "History",
+  "6": "Future Plans",
+  "7": "Enemies",
+  "8": "Knowledge",
+  "9": "Rumors",
+  T: "A Plot Arc",
+  J: "Recent Events",
+  Q: "Equipment",
+  K: "A Faction",
+  A: "The PCs",
 };
 
 const SCENE_COMPLICATIONS = [
-  'Hostile forces oppose you',
-  'An obstacle blocks your way',
+  "Hostile forces oppose you",
+  "An obstacle blocks your way",
   "Wouldn't it suck if...",
-  'An NPC acts suddenly',
-  'All is not as it seems',
-  'Things actually go as planned',
+  "An NPC acts suddenly",
+  "All is not as it seems",
+  "Things actually go as planned",
 ];
 
 const PACING_MOVES = [
-  'Foreshadow Trouble',
-  'Reveal a New Detail',
-  'An NPC Takes Action',
-  'Advance a Threat',
-  'Advance a Plot',
+  "Foreshadow Trouble",
+  "Reveal a New Detail",
+  "An NPC Takes Action",
+  "Advance a Threat",
+  "Advance a Plot",
 ];
 
 const FAILURE_MOVES = [
-  'Cause Harm',
-  'Put Someone in a Spot',
-  'Offer a Choice',
-  'Advance a Threat',
-  'Reveal an Unwelcome Truth',
-  'Foreshadow Trouble',
+  "Cause Harm",
+  "Put Someone in a Spot",
+  "Offer a Choice",
+  "Advance a Threat",
+  "Reveal an Unwelcome Truth",
+  "Foreshadow Trouble",
 ];
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-function _cardText(table: Record<string, string>): string {
-  const { rank, suit } = drawCard();
+function _cardText(
+  table: Record<string, string>,
+  suitForm: "adverb" | "adjective" = "adverb",
+): string {
+  const { rank, suitIndex } = drawCard();
+  const suit =
+    suitForm === "adverb" ? SUIT_ADVERB[suitIndex] : SUIT_ADJECTIVE[suitIndex];
   return `${suit} ${table[rank]}`;
 }
 
@@ -90,14 +135,14 @@ function _pacingMoveText(): string {
  * Unlikely: 1 white vs keep max of 2 black dice.
  * Equal result → question is unanswerable as posed.
  */
-export function rollOracle(likelihood: 'even' | 'likely' | 'unlikely'): string {
+export function rollOracle(likelihood: "even" | "likely" | "unlikely"): string {
   let white: number;
   let black: number;
 
-  if (likelihood === 'even') {
+  if (likelihood === "even") {
     white = d6();
     black = d6();
-  } else if (likelihood === 'likely') {
+  } else if (likelihood === "likely") {
     white = Math.max(d6(), d6());
     black = d6();
   } else {
@@ -106,17 +151,23 @@ export function rollOracle(likelihood: 'even' | 'likely' | 'unlikely'): string {
   }
 
   const label =
-    likelihood === 'even' ? 'Oracle (Even)' :
-    likelihood === 'likely' ? 'Oracle (Likely)' : 'Oracle (Unlikely)';
+    likelihood === "even"
+      ? "Oracle (Even)"
+      : likelihood === "likely"
+        ? "Oracle (Likely)"
+        : "Oracle (Unlikely)";
 
   if (white === black) {
     return `${label}: Answer impossible — the question itself may be wrong`;
   }
 
-  const yesNo = white > black ? 'Yes' : 'No';
+  const yesNo = white > black ? "Yes" : "No";
   const modifier =
-    white <= 3 && black <= 3 ? ', but...' :
-    white >= 4 && black >= 4 ? ', and...' : '';
+    white <= 3 && black <= 3
+      ? ", but..."
+      : white >= 4 && black >= 4
+        ? ", and..."
+        : "";
 
   return `${label}: ${yesNo}${modifier}`;
 }
@@ -157,12 +208,12 @@ export function rollSetScene(): string {
 /** OPSE Oracle (How) — how big, good, strong, etc. something is. */
 export function rollHowMuch(): string {
   const HOW_MUCH = [
-    'Surprisingly lacking',
-    'Less than expected',
-    'About average',
-    'About average',
-    'More than expected',
-    'Extraordinary',
+    "Surprisingly lacking",
+    "Less than expected",
+    "About average",
+    "About average",
+    "More than expected",
+    "Extraordinary",
   ];
   return `How Much: ${HOW_MUCH[d6() - 1]}`;
 }
@@ -179,12 +230,12 @@ export function rollActionFocus(): string {
 
 /** OPSE Detail Focus — what kind of thing is it? (card draw) */
 export function rollDetailFocus(): string {
-  return `Detail Focus: ${_cardText(DETAIL_FOCUS)}`;
+  return `Detail Focus: ${_cardText(DETAIL_FOCUS, "adverb")}`;
 }
 
 /** OPSE Topic Focus — what is this about? (card draw) */
 export function rollTopicFocus(): string {
-  return `Topic Focus: ${_cardText(TOPIC_FOCUS)}`;
+  return `Topic Focus: ${_cardText(TOPIC_FOCUS, "adjective")}`;
 }
 
 /** OPSE Pacing Move — use when action lulls or "what now?" (d6) */
@@ -195,4 +246,624 @@ export function rollPacingMove(): string {
 /** OPSE Failure Move — use when a roll fails with consequences (d6) */
 export function rollFailureMove(): string {
   return `Failure Move: ${FAILURE_MOVES[d6() - 1]}`;
+}
+
+// ── Dungeon generation tables ─────────────────────────────────────────────────
+
+const DUNGEON_ADJECTIVE = [
+  "dingy",
+  "dangerous",
+  "lavish",
+  "mind-bending",
+  "converted",
+  "war-torn",
+];
+
+const DUNGEON_STRUCTURE = [
+  "jail or cellar",
+  "cave, mine, or natural hideaway",
+  "warehouse or industrial space",
+  "street or back alley",
+  "library, school, lab, or study",
+  "church or temple",
+];
+
+const DUNGEON_ENEMY_TYPE = [
+  "humans (bandits, gangsters, etc.)",
+  "humanoids (orcs, goblins, etc.)",
+  "magical monsters",
+  "mutated beasts",
+  "robots / golems",
+  "cultists or unholy things",
+];
+
+const ROOM_TYPE = [
+  "A tight hallway or small room",
+  "A holding area for another enemy type",
+  "A barracks or storage room",
+  "A living space or bunkroom",
+  "A large meeting or entertainment room",
+  "A large, open space",
+];
+
+const ROOM_CONTENTS = [
+  "Treasure! (Roll for a magic item)",
+  "A puzzle or riddle",
+  "A physical blockade or trap",
+  "Weak enemy(s)",
+  "Normal enemy(s)",
+  "Strong enemy(s)",
+];
+
+const NUMBER_OF_DOORS = [
+  "0 doors",
+  "1 locked door",
+  "1 door",
+  "1 door + 1 locked door",
+  "2 doors",
+  "2 doors + 1 locked door",
+];
+
+const BOSS_ROOM_GIMMICK = [
+  "occasional waves of level 1 enemies",
+  "hidden traps",
+  "a shifting environment",
+  "illusions / holograms",
+  "two bosses",
+  "random spells / spell effects, like creeping ice or reversed gravity",
+];
+
+const HIDDEN_GOODIES = [
+  "A key that opens a locked room",
+  "A key that opens a locked room",
+  "A note from the old or current residents",
+  "A secret passageway! (Roll for a new room)",
+  "Hidden riches! (+2 XP per PC)",
+  "A hidden item! (Roll for a magic item)",
+];
+
+// ── Dungeon internal helpers ──────────────────────────────────────────────────
+
+function _rollRandomItem(): string {
+  return _rollItemName();
+}
+
+function _rollMagicItem(): string {
+  return `${_rollPowerWords()} ${_rollItemName()}`;
+}
+
+function _resolveMagicItemRoll(): string {
+  const roll = Math.floor(Math.random() * 3) + 1;
+  return roll <= 2 ? _rollRandomItem() : _rollMagicItem();
+}
+
+function _resolveItemText(raw: string): string {
+  if (raw.includes("(Roll for a magic item)")) {
+    return raw.replace(
+      "(Roll for a magic item)",
+      `— ${_resolveMagicItemRoll()}`,
+    );
+  }
+  return raw;
+}
+
+// ── Exported dungeon functions ────────────────────────────────────────────────
+
+/** Labyrinth Dungeon Theme — adjective + structure + enemy type. */
+export function rollDungeonTheme(): string {
+  const adj = DUNGEON_ADJECTIVE[d6() - 1];
+  const structure = DUNGEON_STRUCTURE[d6() - 1];
+  const enemy = DUNGEON_ENEMY_TYPE[d6() - 1];
+  return `Dungeon Theme: A ${adj} ${structure} populated by ${enemy}.`;
+}
+
+/** Labyrinth Dungeon Room — room type, contents, doors, and optional boss. */
+export function rollDungeonRoom(): string {
+  const roomTypeRoll = d6();
+  const contentsRoll = d6();
+  const roomType = ROOM_TYPE[roomTypeRoll - 1];
+  const doorsText = NUMBER_OF_DOORS[d6() - 1];
+
+  const rawContents = _resolveItemText(ROOM_CONTENTS[contentsRoll - 1]);
+  const lcContents = rawContents.charAt(0).toLowerCase() + rawContents.slice(1);
+
+  let result = `Dungeon Room: ${roomType} with ${lcContents}. The room has ${doorsText}.`;
+
+  if ((roomTypeRoll === 5 || roomTypeRoll === 6) && contentsRoll === 6) {
+    const gimmick = BOSS_ROOM_GIMMICK[d6() - 1];
+    result += ` This is a boss room, and the room has ${gimmick}!`;
+  }
+
+  return result;
+}
+
+/** Labyrinth Dungeon Loot — d3: 1-2 nothing, 3 roll Hidden Goodies. */
+export function rollDungeonLoot(): string {
+  const roll = Math.floor(Math.random() * 3) + 1;
+  if (roll <= 2) {
+    return "Dungeon Loot: Nothing of note.";
+  }
+  const resolved = _resolveItemText(HIDDEN_GOODIES[d6() - 1]);
+  return `Dungeon Loot: ${resolved}`;
+}
+
+// ── Sanctuary Organization tables ────────────────────────────────────────────
+
+const ORG_TYPE = [
+  "corporate entity",
+  "criminal organization",
+  "government agency",
+  "local business",
+  "underground network",
+  "cult or religious order",
+];
+
+const ORG_POWER_LEVEL = [
+  "barely scraping by",
+  "struggling, could be better",
+  "surviving / well-funded",
+  "surviving / well-funded",
+  "thriving, more than enough",
+  "a dominant force",
+];
+
+const ORG_PRIMARY_DRIVE = [
+  "survival / protection",
+  "profit / growth",
+  "control / order",
+  "change / revolution",
+  "knowledge / truth",
+  "service / community",
+];
+
+const ORG_OPERATING_STYLE = [
+  "direct confrontation",
+  "subtle manipulation",
+  "open publicity",
+  "technological solutions",
+  "their network of contacts",
+  "adaptive, opportunistic tactics",
+];
+
+// ── Exported organization function ───────────────────────────────────────────
+
+/** Sanctuary Organization Generator — type, power level, drive, and operating style. */
+export function rollGroup(): string {
+  const detail = _cardText(DETAIL_FOCUS);
+  const type = ORG_TYPE[d6() - 1];
+  const power = ORG_POWER_LEVEL[d6() - 1];
+  const drive = ORG_PRIMARY_DRIVE[d6() - 1];
+  const style = ORG_OPERATING_STYLE[d6() - 1];
+  return `Group: A ${detail} ${type} that is ${power}. They are driven by ${drive} and they tend to use ${style}.`;
+}
+
+// ── Town / City Builder tables ────────────────────────────────────────────────
+
+const TOWN_SIZE = [
+  "village (~1k people)",
+  "town (~10k people)",
+  "small city (~100k people)",
+  "city (~250k people)",
+  "metropolis (~1M people)",
+  "megacity (~10M+ people)",
+];
+
+const TOWN_RULER = [
+  "a young, inexperienced leader",
+  "a wise elder",
+  "a leader with wild ambitions",
+  "a battle-worn warrior",
+  "a council of people",
+  "a charming, naturally gifted leader",
+];
+
+const TOWN_ATTRACTION = [
+  "industry",
+  "entertainment",
+  "stores and trade",
+  "thriving crime world",
+  "scientific advancements",
+  "history",
+];
+
+// Danger from Sanctuary table — Warzone removed, Bad rep & Dangerous shifted up,
+// Normal appears twice. Reworded to read naturally after "it is".
+const TOWN_DANGER = [
+  "relatively safe — people here are generally peaceful",
+  "safe, but tightly controlled",
+  "fairly normal — although trouble can be found if you go looking",
+  "fairly normal — although trouble can be found if you go looking",
+  "known to be a bit rough around the edges",
+  "dangerous — don't go out alone at night",
+];
+
+// Combined Notable Features + More Notable Features (d12).
+// Space-centric entries updated to be universal.
+const TOWN_NOTABLE_FEATURES = [
+  "the city is split by a river or fissure",
+  "the city sits on a mountain",
+  "there are no nearby cities for miles",
+  "something dangerous sits right outside the city, like a volcano or hazardous terrain",
+  "the terrain is very vertical",
+  "local wildlife helps keep the city running",
+  "a giant statue sits in the town square",
+  "several different cultures live here with varying styles",
+  "the city is surrounded by a protective wall",
+  "the city's main gate or port is massive and heavily trafficked",
+  "the city has only one main structure",
+  "a section of the city has been destroyed",
+];
+
+// ── Exported town function ────────────────────────────────────────────────────
+
+/** City Builder — size, ruler, attraction, danger, and notable feature. */
+export function rollTown(): string {
+  const detail = _cardText(DETAIL_FOCUS);
+  const size = TOWN_SIZE[d6() - 1];
+  const ruler = TOWN_RULER[d6() - 1];
+  const attraction = TOWN_ATTRACTION[d6() - 1];
+  const danger = TOWN_DANGER[d6() - 1];
+  const feature = TOWN_NOTABLE_FEATURES[Math.floor(Math.random() * 12)];
+  return `Town: A ${detail} ${size} led by ${ruler}. This city is known for its ${attraction}, and it is ${danger}. Notably, ${feature}.`;
+}
+
+// ── OPSE NPC & Plot Hook tables ───────────────────────────────────────────────
+
+const NPC_IDENTITY: Record<string, string> = {
+  "2": "Outlaw",
+  "3": "Drifter",
+  "4": "Tradesman",
+  "5": "Commoner",
+  "6": "Soldier",
+  "7": "Merchant",
+  "8": "Specialist",
+  "9": "Entertainer",
+  T: "Adherent",
+  J: "Leader",
+  Q: "Mystic",
+  K: "Adventurer",
+  A: "Lord",
+};
+
+// Phrased to read naturally after "wants to"
+const NPC_GOAL: Record<string, string> = {
+  "2": "obtain something",
+  "3": "learn something",
+  "4": "harm someone",
+  "5": "restore something",
+  "6": "find something",
+  "7": "travel somewhere",
+  "8": "protect someone",
+  "9": "enrich themselves",
+  T: "avenge someone",
+  J: "fulfill their duty",
+  Q: "escape",
+  K: "create something",
+  A: "serve someone",
+};
+
+// Index 0 = unremarkable (special case). Others are used in "They have [X] that is [DETAIL FOCUS]."
+const NPC_NOTABLE_FEATURE = [
+  null,
+  "a notable nature",
+  "an obvious physical trait",
+  "a quirk or mannerism",
+  "unusual equipment",
+  "an unexpected age or origin",
+];
+
+const PLOT_OBJECTIVE = [
+  "eliminate a threat",
+  "learn the truth",
+  "recover something valuable",
+  "escort or deliver someone to safety",
+  "restore something broken",
+  "save an ally in peril",
+];
+
+const PLOT_REWARD = [
+  "money or valuables",
+  "money or valuables",
+  "knowledge and secrets",
+  "the support of an ally",
+  "advancing a plot arc",
+  "a unique item of power",
+];
+
+const PLOT_ADVERSARY = [
+  "a powerful organization",
+  "outlaws",
+  "guardians",
+  "local inhabitants",
+  "an enemy horde or force",
+  "a new or recurring villain",
+];
+
+// ── OPSE NPC & Plot Hook helpers ──────────────────────────────────────────────
+
+function _cardRankOnly(table: Record<string, string>): string {
+  const { rank } = drawCard();
+  return table[rank];
+}
+
+function _article(word: string): string {
+  return /^[aeiou]/i.test(word) ? "An" : "A";
+}
+
+// ── Exported OPSE generator functions ────────────────────────────────────────
+
+/** OPSE NPC Generator — identity, goal, and notable feature with Detail Focus. */
+export function rollNPC(): string {
+  const identity = _cardRankOnly(NPC_IDENTITY);
+  const goal = _cardRankOnly(NPC_GOAL);
+  const featureRoll = d6();
+  const feature = NPC_NOTABLE_FEATURE[featureRoll - 1];
+
+  const article = _article(identity);
+  let result = `NPC: ${article} ${identity} who wants to ${goal}.`;
+
+  if (feature === null) {
+    result += " They are relatively unremarkable.";
+  } else {
+    const detail = _cardText(DETAIL_FOCUS);
+    result += ` They have ${feature} that is ${detail}.`;
+  }
+
+  return result;
+}
+
+/** OPSE Plot Hook Generator — objective, reward, adversary, and Detail Focus. */
+export function rollPlotHook(): string {
+  const objective = PLOT_OBJECTIVE[d6() - 1];
+  const reward = PLOT_REWARD[d6() - 1];
+  const adversary = PLOT_ADVERSARY[d6() - 1];
+  const detail = _cardText(DETAIL_FOCUS);
+  return `Plot Hook: You have to ${objective} in exchange for ${reward}, but in your way stands ${adversary} who are ${detail}.`;
+}
+
+// ── GM Guide — One-Shot World Generator tables ────────────────────────────────
+
+const WORLD_SETTING_1 = [
+  "high",
+  "surreal",
+  "dark",
+  "post-apocalyptic",
+  "mythological",
+  "alternate",
+];
+const WORLD_SETTING_2 = [
+  "fantasy",
+  "space opera",
+  "historic",
+  "modern",
+  "futuristic",
+  "steampunk",
+];
+
+// Each biome is a vivid landscape phrase completing "set in ___"
+const WORLD_BIOME = [
+  "wide, sun-drenched plains",
+  "the shadow of harsh, towering peaks",
+  "a world of restless seas and scattered shores",
+  "a frozen, wind-battered tundra",
+  "a vast, merciless desert",
+  "the depths of a dense, dripping jungle",
+];
+
+// d6 index 0-5 maps to table rolls 1-6; rolls 2 and 3 both = Humans
+const WORLD_RACES = [
+  "creatures unlike any human",
+  "humans",
+  "humans",
+  "humans alongside one other dominant race",
+  "humans alongside several other races",
+  "a melting pot of countless races and peoples",
+];
+
+// Each phrase completes the sentence "…and [phrase] them."
+const WORLD_GODS = [
+  "no gods look over",
+  "the echoes of ancient, long-dead gods still haunt",
+  "dark gods conspire against",
+  "a pantheon of gods watches over",
+  "nature spirits wander alongside",
+  "a single god watches over",
+];
+
+const WORLD_POWER_1 = [
+  "Elemental magic",
+  "Arcane magic",
+  "Psionics",
+  "Technology",
+  "Superpowers",
+  "Nature magic",
+];
+const WORLD_POWER_2 = [
+  "studied or trained",
+  "commonplace",
+  "channeled through tools",
+  "forbidden",
+  "attached to the body",
+  "bestowed or borrowed",
+];
+
+// ── Exported world function ───────────────────────────────────────────────────
+
+/** GM Guide One-Shot World Generator — setting, biome, races, gods, power system. */
+export function rollWorld(): string {
+  const setting1 = WORLD_SETTING_1[d6() - 1];
+  const setting2 = WORLD_SETTING_2[d6() - 1];
+  const biome = WORLD_BIOME[d6() - 1];
+  const races = WORLD_RACES[d6() - 1];
+  const gods = WORLD_GODS[d6() - 1];
+  const power1 = WORLD_POWER_1[d6() - 1];
+  const power2 = WORLD_POWER_2[d6() - 1];
+  return `World: A ${setting1} ${setting2} world set in ${biome}. The world is populated by ${races}, and ${gods} them. In this world, ${power1} is ${power2}.`;
+}
+
+// ── Tower of Echoes — Power & Item tables ─────────────────────────────────────
+
+// 2d6 source table flattened to d36. Replaced: Steadfast (51) → Shielding, Dominion (52) → Commanding.
+const POWER_TYPES = [
+  "Blazing",
+  "Icy",
+  "Windy",
+  "Shocking",
+  "Earthen",
+  "Watery",
+  "Light",
+  "Dark",
+  "Holy",
+  "Unholy",
+  "Healing",
+  "Poisonous",
+  "Sonic",
+  "Binding",
+  "Shattering",
+  "Slicing",
+  "Magnetic",
+  "Living",
+  "Mental",
+  "Rapid",
+  "Illusory",
+  "Flying",
+  "Draining",
+  "Exploding",
+  "Shielding",
+  "Commanding",
+  "Terrifying",
+  "Charming",
+  "Teleporting",
+  "Detecting",
+  "Lucky",
+  "Multiplying",
+  "Summoning",
+  "Timely",
+  "Gravitational",
+  "Mimicking",
+];
+
+const ITEM_MELEE = [
+  "Short Sword",
+  "Long Sword",
+  "Greatsword",
+  "Short Sword",
+  "Long Sword",
+  "Greatsword",
+  "Spear",
+  "Spear",
+  "Hammer",
+  "Axe",
+  "Staff",
+  "Dagger",
+  "Rapier",
+  "Flail",
+  "Mace",
+  "Pick",
+  "Knuckles",
+  "Sickle",
+];
+const ITEM_RANGED = [
+  "Shortbow",
+  "Longbow",
+  "Crossbow",
+  "Handgun",
+  "Rifle",
+  "Shotgun",
+  "Sling",
+  "Throwing Knife",
+  "Javelin",
+  "Blowgun",
+];
+const ITEM_ARMOR = [
+  "Chestplate",
+  "Chain Mail",
+  "Plate Armor",
+  "Shield",
+  "Shield",
+  "Helmet",
+  "Greaves",
+  "Gloves",
+  "Bracers",
+  "Pauldrons",
+];
+const ITEM_ACCESSORY = [
+  "Ring",
+  "Ring",
+  "Amulet",
+  "Belt",
+  "Earring",
+  "Crown",
+  "Cloak",
+  "Bandages",
+  "Watch",
+  "Mask",
+];
+const ITEM_HANDHELD = [
+  "Wand",
+  "Orb",
+  "Book",
+  "Lantern",
+  "Toolkit",
+  "Musical Instrument",
+  "Umbrella",
+  "Box",
+  "Dice",
+  "Cards",
+  "Staff",
+  "Idol",
+  "Key",
+];
+const ITEM_CONSUMABLE = [
+  "Potion (Consumable)",
+  "Potion (Consumable)",
+  "Scroll (Consumable)",
+  "Scroll (Consumable)",
+  "Biscuit (Consumable)",
+  "Exploding Beads (Consumable)",
+  "Ammo (Consumable)",
+];
+
+const ITEM_TABLES = [
+  ITEM_MELEE,
+  ITEM_RANGED,
+  ITEM_ARMOR,
+  ITEM_ACCESSORY,
+  ITEM_HANDHELD,
+  ITEM_CONSUMABLE,
+];
+
+// ── Power & Item internal helpers ─────────────────────────────────────────────
+
+function _rollPowerWords(): string {
+  const count = Math.floor(Math.random() * 9) + 1;
+  const numWords = count <= 6 ? 1 : count <= 8 ? 2 : 3;
+  const picked: string[] = [];
+  while (picked.length < numWords) {
+    const word = POWER_TYPES[Math.floor(Math.random() * 36)];
+    if (!picked.includes(word)) picked.push(word);
+  }
+  return picked.join(" ");
+}
+
+function _rollItemName(): string {
+  const subTable = ITEM_TABLES[d6() - 1];
+  return subTable[Math.floor(Math.random() * subTable.length)];
+}
+
+// ── Exported power & item functions ──────────────────────────────────────────
+
+/** Tower of Echoes — roll 1–3 power words (d6 count: 1–3 = one, 4–5 = two, 6 = three). */
+export function rollMagicPower(): string {
+  return `Magic / Power: ${_rollPowerWords()}`;
+}
+
+/** Tower of Echoes — random item from expanded Item Type table (d6 category × d6 sub-type). */
+export function rollRandomItem(): string {
+  return `Random Item: ${_rollItemName()}`;
+}
+
+/** Tower of Echoes — magic item combining power words and item type. */
+export function rollMagicItem(): string {
+  return `Magic Item: ${_rollPowerWords()} ${_rollItemName()}`;
 }

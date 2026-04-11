@@ -169,10 +169,7 @@ export default function Sidebar({
                       activeOpacity={0.7}
                     >
                       {renderDot(isActive, cs.primary)}
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.entryName, { color: scheme.text }]}>{char.name}</Text>
-                        <Text style={[styles.entrySub, { color: scheme.textSecondary }]}>{camp.name}</Text>
-                      </View>
+                      <Text style={[styles.entryName, { color: scheme.text, flex: 1 }]}>{char.name}</Text>
                       <View style={[styles.colorDot, { backgroundColor: cs.primary }]} />
                     </TouchableOpacity>
                   );
