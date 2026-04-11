@@ -3,10 +3,10 @@ const d6 = (): number => Math.floor(Math.random() * 6) + 1;
 const CARD_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 
 const SUIT_FULL = [
-  'Physical (appearance, existence)',
-  'Technical (mental, operation)',
-  'Mystical (meaning, capability)',
-  'Social (personal, connection)',
+  'Physical(ly)',
+  'Technical(ly)',
+  'Mystical(ly)',
+  'Social(ly)',
 ];
 
 function drawCard(): { rank: string; suit: string } {
@@ -64,7 +64,7 @@ const FAILURE_MOVES = [
 
 function _cardText(table: Record<string, string>): string {
   const { rank, suit } = drawCard();
-  return `${table[rank]} — ${suit}`;
+  return `${suit} ${table[rank]}`;
 }
 
 function _randomEventText(): string {
