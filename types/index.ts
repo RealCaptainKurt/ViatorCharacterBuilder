@@ -55,6 +55,8 @@ export interface Character {
   description: string;
   traits: Trait[];
   additionalComponents: AdditionalComponent[];
+  /** Ordered list of section IDs. Base IDs: '__description', '__traits'. */
+  sectionOrder?: string[];
   colorScheme: ColorSchemeId;
   campaignId: string | null;
   createdAt: number;
@@ -70,6 +72,8 @@ export interface Campaign {
   locations: NamedItem[];
   scenes: NamedItem[];
   additionalComponents: AdditionalComponent[];
+  /** Ordered list of section IDs. Base IDs: '__currentScene', '__npcs', '__locations', '__scenes'. */
+  sectionOrder?: string[];
   colorScheme: ColorSchemeId;
   characterId: string | null;
   createdAt: number;

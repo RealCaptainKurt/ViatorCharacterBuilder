@@ -33,6 +33,7 @@ interface AppState {
   // UI
   isSidebarOpen: boolean;
   isLoaded: boolean;
+  isEditMode: boolean;
 
   // Init
   initialize: () => Promise<void>;
@@ -40,6 +41,7 @@ interface AppState {
   // Sidebar
   openSidebar: () => void;
   closeSidebar: () => void;
+  toggleEditMode: () => void;
 
   // Active selection
   setActive: (characterId: string | null, campaignId: string | null) => void;
@@ -103,6 +105,11 @@ interface AppState {
     itemId: string
   ) => void;
   removeCharacterComponent: (characterId: string, componentId: string) => void;
+  reorderCharacterComponents: (characterId: string, from: number, to: number) => void;
+  reorderCharacterComponentListItems: (characterId: string, componentId: string, from: number, to: number) => void;
+  reorderCharacterTraits: (characterId: string, from: number, to: number) => void;
+  reorderCharacterSection: (characterId: string, from: number, to: number) => void;
+  removeCharacterSection: (characterId: string, sectionId: string) => void;
 
   removeCharacter: (id: string) => void;
 
@@ -170,12 +177,25 @@ interface AppState {
     itemId: string
   ) => void;
   removeCampaignComponent: (campaignId: string, componentId: string) => void;
+  reorderCampaignComponents: (campaignId: string, from: number, to: number) => void;
+  reorderCampaignComponentListItems: (campaignId: string, componentId: string, from: number, to: number) => void;
+  reorderCampaignListItems: (campaignId: string, list: 'npcs' | 'locations' | 'scenes', from: number, to: number) => void;
+  reorderCampaignSection: (campaignId: string, from: number, to: number) => void;
+  removeCampaignSection: (campaignId: string, sectionId: string) => void;
 
   removeCampaign: (id: string) => void;
 
   // Link/unlink
   linkCharacterToCampaign: (characterId: string, campaignId: string) => void;
   unlinkCharacterFromCampaign: (characterId: string) => void;
+}
+
+// ─── Helper: reorder array ────────────────────────────────────────────────────
+function reorder<T>(arr: T[], from: number, to: number): T[] {
+  const result = [...arr];
+  const [item] = result.splice(from, 1);
+  result.splice(to, 0, item);
+  return result;
 }
 
 // ─── Helper: persist character ───────────────────────────────────────────────
@@ -193,6 +213,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeCampaignId: null,
   isSidebarOpen: false,
   isLoaded: false,
+  isEditMode: false,
 
   initialize: async () => {
     const [characters, campaigns, active] = await Promise.all([
@@ -231,6 +252,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
 
+    // Migrate: add sectionOrder if missing
+    for (const char of Object.values(characters)) {
+      if (!(char as any).sectionOrder) {
+        characters[char.id] = {
+          ...char,
+          sectionOrder: ['__description', '__traits', ...char.additionalComponents.map((c) => c.id)],
+        };
+        persistChar(characters[char.id]);
+      }
+    }
+    for (const camp of Object.values(campaigns)) {
+      if (!(camp as any).sectionOrder) {
+        campaigns[camp.id] = {
+          ...camp,
+          sectionOrder: ['__currentScene', '__npcs', '__locations', '__scenes', ...camp.additionalComponents.map((c) => c.id)],
+        };
+        persistCamp(campaigns[camp.id]);
+      }
+    }
+
     set({
       characters,
       campaigns,
@@ -242,6 +283,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   openSidebar: () => set({ isSidebarOpen: true }),
   closeSidebar: () => set({ isSidebarOpen: false }),
+  toggleEditMode: () => set((s) => ({ isEditMode: !s.isEditMode })),
 
   setActive: (characterId, campaignId) => {
     set({ activeCharacterId: characterId, activeCampaignId: campaignId });
@@ -257,6 +299,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       description,
       traits: traits.map((t) => ({ ...t, id: generateId() })),
       additionalComponents: [],
+      sectionOrder: ['__description', '__traits'],
       colorScheme,
       campaignId: null,
       createdAt: Date.now(),
@@ -332,9 +375,11 @@ export const useAppStore = create<AppState>((set, get) => ({
           : type === 'list'
           ? { id: generateId(), type: 'list', name, items: [] }
           : { id: generateId(), type: 'number', name, value: 0 };
+      const baseSectionOrder = char.sectionOrder ?? ['__description', '__traits', ...char.additionalComponents.map((c) => c.id)];
       const updated = {
         ...char,
         additionalComponents: [...char.additionalComponents, comp],
+        sectionOrder: [...baseSectionOrder, comp.id],
         updatedAt: Date.now(),
       };
       persistChar(updated);
@@ -445,11 +490,83 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!char) return s;
       const updated = {
         ...char,
-        additionalComponents: char.additionalComponents.filter(
-          (c) => c.id !== componentId
+        additionalComponents: char.additionalComponents.filter((c) => c.id !== componentId),
+        sectionOrder: char.sectionOrder ? char.sectionOrder.filter((id) => id !== componentId) : undefined,
+        updatedAt: Date.now(),
+      };
+      persistChar(updated);
+      return { characters: { ...s.characters, [characterId]: updated } };
+    });
+  },
+
+  reorderCharacterComponents: (characterId, from, to) => {
+    set((s) => {
+      const char = s.characters[characterId];
+      if (!char) return s;
+      const updated = {
+        ...char,
+        additionalComponents: reorder(char.additionalComponents, from, to),
+        updatedAt: Date.now(),
+      };
+      persistChar(updated);
+      return { characters: { ...s.characters, [characterId]: updated } };
+    });
+  },
+
+  reorderCharacterComponentListItems: (characterId, componentId, from, to) => {
+    set((s) => {
+      const char = s.characters[characterId];
+      if (!char) return s;
+      const updated = {
+        ...char,
+        additionalComponents: char.additionalComponents.map((c) =>
+          c.id === componentId && c.type === 'list'
+            ? { ...c, items: reorder(c.items, from, to) }
+            : c
         ),
         updatedAt: Date.now(),
       };
+      persistChar(updated);
+      return { characters: { ...s.characters, [characterId]: updated } };
+    });
+  },
+
+  reorderCharacterTraits: (characterId, from, to) => {
+    set((s) => {
+      const char = s.characters[characterId];
+      if (!char) return s;
+      const updated = {
+        ...char,
+        traits: reorder(char.traits, from, to),
+        updatedAt: Date.now(),
+      };
+      persistChar(updated);
+      return { characters: { ...s.characters, [characterId]: updated } };
+    });
+  },
+
+  reorderCharacterSection: (characterId, from, to) => {
+    set((s) => {
+      const char = s.characters[characterId];
+      if (!char) return s;
+      const order = char.sectionOrder ?? ['__description', '__traits', ...char.additionalComponents.map((c) => c.id)];
+      const updated = { ...char, sectionOrder: reorder(order, from, to), updatedAt: Date.now() };
+      persistChar(updated);
+      return { characters: { ...s.characters, [characterId]: updated } };
+    });
+  },
+
+  removeCharacterSection: (characterId, sectionId) => {
+    set((s) => {
+      const char = s.characters[characterId];
+      if (!char) return s;
+      const order = char.sectionOrder ?? ['__description', '__traits', ...char.additionalComponents.map((c) => c.id)];
+      const sectionOrder = order.filter((id) => id !== sectionId);
+      // Only remove from additionalComponents if it's a custom section (not a base section)
+      const additionalComponents = sectionId.startsWith('__')
+        ? char.additionalComponents
+        : char.additionalComponents.filter((c) => c.id !== sectionId);
+      const updated = { ...char, sectionOrder, additionalComponents, updatedAt: Date.now() };
       persistChar(updated);
       return { characters: { ...s.characters, [characterId]: updated } };
     });
@@ -478,6 +595,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       locations: [],
       scenes: [],
       additionalComponents: [],
+      sectionOrder: ['__currentScene', '__npcs', '__locations', '__scenes'],
       colorScheme,
       characterId: null,
       createdAt: Date.now(),
@@ -553,9 +671,11 @@ export const useAppStore = create<AppState>((set, get) => ({
           : type === 'list'
           ? { id: generateId(), type: 'list', name, items: [] }
           : { id: generateId(), type: 'number', name, value: 0 };
+      const baseSectionOrder = camp.sectionOrder ?? ['__currentScene', '__npcs', '__locations', '__scenes', ...camp.additionalComponents.map((c) => c.id)];
       const updated = {
         ...camp,
         additionalComponents: [...camp.additionalComponents, comp],
+        sectionOrder: [...baseSectionOrder, comp.id],
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -672,11 +792,82 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: camp.additionalComponents.filter(
-          (c) => c.id !== componentId
+        additionalComponents: camp.additionalComponents.filter((c) => c.id !== componentId),
+        sectionOrder: camp.sectionOrder ? camp.sectionOrder.filter((id) => id !== componentId) : undefined,
+        updatedAt: Date.now(),
+      };
+      persistCamp(updated);
+      return { campaigns: { ...s.campaigns, [campaignId]: updated } };
+    });
+  },
+
+  reorderCampaignComponents: (campaignId, from, to) => {
+    set((s) => {
+      const camp = s.campaigns[campaignId];
+      if (!camp) return s;
+      const updated = {
+        ...camp,
+        additionalComponents: reorder(camp.additionalComponents, from, to),
+        updatedAt: Date.now(),
+      };
+      persistCamp(updated);
+      return { campaigns: { ...s.campaigns, [campaignId]: updated } };
+    });
+  },
+
+  reorderCampaignComponentListItems: (campaignId, componentId, from, to) => {
+    set((s) => {
+      const camp = s.campaigns[campaignId];
+      if (!camp) return s;
+      const updated = {
+        ...camp,
+        additionalComponents: camp.additionalComponents.map((c) =>
+          c.id === componentId && c.type === 'list'
+            ? { ...c, items: reorder(c.items, from, to) }
+            : c
         ),
         updatedAt: Date.now(),
       };
+      persistCamp(updated);
+      return { campaigns: { ...s.campaigns, [campaignId]: updated } };
+    });
+  },
+
+  reorderCampaignListItems: (campaignId, list, from, to) => {
+    set((s) => {
+      const camp = s.campaigns[campaignId];
+      if (!camp) return s;
+      const updated = {
+        ...camp,
+        [list]: reorder(camp[list], from, to),
+        updatedAt: Date.now(),
+      };
+      persistCamp(updated);
+      return { campaigns: { ...s.campaigns, [campaignId]: updated } };
+    });
+  },
+
+  reorderCampaignSection: (campaignId, from, to) => {
+    set((s) => {
+      const camp = s.campaigns[campaignId];
+      if (!camp) return s;
+      const order = camp.sectionOrder ?? ['__currentScene', '__npcs', '__locations', '__scenes', ...camp.additionalComponents.map((c) => c.id)];
+      const updated = { ...camp, sectionOrder: reorder(order, from, to), updatedAt: Date.now() };
+      persistCamp(updated);
+      return { campaigns: { ...s.campaigns, [campaignId]: updated } };
+    });
+  },
+
+  removeCampaignSection: (campaignId, sectionId) => {
+    set((s) => {
+      const camp = s.campaigns[campaignId];
+      if (!camp) return s;
+      const order = camp.sectionOrder ?? ['__currentScene', '__npcs', '__locations', '__scenes', ...camp.additionalComponents.map((c) => c.id)];
+      const sectionOrder = order.filter((id) => id !== sectionId);
+      const additionalComponents = sectionId.startsWith('__')
+        ? camp.additionalComponents
+        : camp.additionalComponents.filter((c) => c.id !== sectionId);
+      const updated = { ...camp, sectionOrder, additionalComponents, updatedAt: Date.now() };
       persistCamp(updated);
       return { campaigns: { ...s.campaigns, [campaignId]: updated } };
     });

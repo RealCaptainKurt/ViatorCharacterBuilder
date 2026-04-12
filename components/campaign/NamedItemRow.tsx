@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
 import { NamedItem } from '../../types';
+import { useAppStore } from '../../store/appStore';
 import GlassInput from '../ui/GlassInput';
 import GlassButton from '../ui/GlassButton';
 import ModalOverlay from '../ui/ModalOverlay';
@@ -19,6 +20,8 @@ interface Props {
   onUpdate: (name: string, description: string) => void;
   onRemove: () => void;
   accentColor?: string;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
 export default function NamedItemRow({
@@ -27,19 +30,31 @@ export default function NamedItemRow({
   onUpdate,
   onRemove,
   accentColor,
+  onMoveUp,
+  onMoveDown,
 }: Props) {
+  const { isEditMode } = useAppStore();
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(item.name);
   const [editDesc, setEditDesc] = useState(item.description);
 
-  const dot = accentColor ?? scheme.primary;
+  const arrowColor = accentColor ?? scheme.primary;
 
   const handleSave = () => {
     if (!editName.trim()) return;
     onUpdate(editName.trim(), editDesc.trim());
     setEditing(false);
   };
+
+  const handleRemove = () => {
+    Alert.alert('Remove', `Remove "${item.name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: onRemove },
+    ]);
+  };
+
+  const showMoveButtons = onMoveUp !== undefined || onMoveDown !== undefined;
 
   return (
     <>
@@ -51,17 +66,39 @@ export default function NamedItemRow({
           setEditing(true);
         }}
         activeOpacity={0.75}
-        style={[styles.row, { borderBottomColor: scheme.surfaceBorder }]}
+        style={styles.row}
       >
-        <View style={[styles.dot, { backgroundColor: dot }]} />
+        <Text style={[styles.arrow, { color: arrowColor }]}>
+          {expanded ? '⌄' : '›'}
+        </Text>
         <View style={{ flex: 1 }}>
           <Text style={[styles.name, { color: scheme.text }]}>{item.name}</Text>
-          {expanded && item.description ? (
-            <Text style={[styles.desc, { color: scheme.textSecondary }]}>
-              {item.description}
+          {expanded && (
+            <Text style={[
+              styles.desc,
+              { color: item.description ? scheme.textSecondary : scheme.textMuted,
+                fontStyle: item.description ? 'normal' : 'italic' },
+            ]}>
+              {item.description || 'No description, tap to edit.'}
             </Text>
-          ) : null}
+          )}
         </View>
+        {showMoveButtons && (
+          <View style={styles.moveButtons}>
+            <TouchableOpacity
+              onPress={onMoveUp}
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            >
+              <Text style={[styles.moveArrow, { color: onMoveUp ? scheme.primary : scheme.textMuted }]}>↑</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onMoveDown}
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            >
+              <Text style={[styles.moveArrow, { color: onMoveDown ? scheme.primary : scheme.textMuted }]}>↓</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <TouchableOpacity
           onPress={() => {
             setEditName(item.name);
@@ -72,6 +109,14 @@ export default function NamedItemRow({
         >
           <Feather name="edit-2" size={14} color={scheme.textMuted} style={{ paddingTop: 2 }} />
         </TouchableOpacity>
+        {isEditMode && (
+          <TouchableOpacity
+            onPress={handleRemove}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close-circle" size={18} color={scheme.destructive} />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
 
       <ModalOverlay
@@ -140,14 +185,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingVertical: 10,
-    borderBottomWidth: 1,
+    paddingLeft: 4,
     gap: 10,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 5,
+  arrow: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 2,
+    width: 14,
+    textAlign: 'center',
   },
   name: {
     fontSize: 14,
@@ -158,9 +204,15 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 3,
   },
-  editIcon: {
-    fontSize: 16,
-    paddingTop: 2,
+  moveButtons: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 2,
+  },
+  moveArrow: {
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 16,
   },
   actions: {
     flexDirection: 'row',

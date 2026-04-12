@@ -5,17 +5,26 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLOR_SCHEMES } from '../../constants/colorSchemes';
-import { Character, AdditionalListComponent, AdditionalNumberComponent, CollapsedSections } from '../../types';
+import { TRAIT_LEVELS } from '../../constants/traits';
+import { Character, AdditionalListComponent, AdditionalNumberComponent, AdditionalTextComponent, CollapsedSections } from '../../types';
 import { useAppStore } from '../../store/appStore';
 import GlassCard from '../ui/GlassCard';
+import GlassHighlight from '../ui/GlassHighlight';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import TraitRow from './TraitRow';
 import GlassButton from '../ui/GlassButton';
 import GlassInput from '../ui/GlassInput';
 import TextContentRow from '../ui/TextContentRow';
 import ModalOverlay from '../ui/ModalOverlay';
+import NumberEditModal from '../ui/NumberEditModal';
 import NamedItemRow from '../campaign/NamedItemRow';
 import AddItemRow from '../campaign/AddItemRow';
 
@@ -30,11 +39,17 @@ export default function CharacterSheet({ character }: Props) {
     addTrait,
     updateTrait,
     removeTrait,
+    reorderCharacterTraits,
     updateCharacterComponentText,
     updateCharacterComponentNumber,
     addCharacterComponentListItem,
     updateCharacterComponentListItem,
     removeCharacterComponentListItem,
+    reorderCharacterComponentListItems,
+    reorderCharacterSection,
+    removeCharacterSection,
+    addCharacterComponent,
+    isEditMode,
   } = useAppStore();
 
   const [collapsed, setCollapsed] = useState<CollapsedSections>({
@@ -42,34 +57,20 @@ export default function CharacterSheet({ character }: Props) {
     traits: true,
   });
 
-  // XP modal state
   const [showXpModal, setShowXpModal] = useState(false);
   const [draftXp, setDraftXp] = useState(String(character.xp));
 
-  // Add-trait modal state
   const [showAddTrait, setShowAddTrait] = useState(false);
   const [newTraitName, setNewTraitName] = useState('');
   const [newTraitLevel, setNewTraitLevel] = useState(1);
 
-  // Add-item state for list components
   const [addingItemCompId, setAddingItemCompId] = useState<string | null>(null);
 
-  // Number component edit state
-  const [editingNumberId, setEditingNumberId] = useState<string | null>(null);
-  const [draftNumber, setDraftNumber] = useState('0');
+  const [editingNumber, setEditingNumber] = useState<AdditionalNumberComponent | null>(null);
 
-  const openNumberModal = (comp: AdditionalNumberComponent) => {
-    setEditingNumberId(comp.id);
-    setDraftNumber(String(comp.value));
-  };
-  const adjustNumber = (delta: number) =>
-    setDraftNumber((v) => String((parseInt(v, 10) || 0) + delta));
-  const handleNumberSave = () => {
-    if (!editingNumberId) return;
-    const n = parseInt(draftNumber, 10);
-    if (!isNaN(n)) updateCharacterComponentNumber(character.id, editingNumberId, n);
-    setEditingNumberId(null);
-  };
+  const [addingComp, setAddingComp] = useState(false);
+  const [newCompName, setNewCompName] = useState('');
+  const [newCompType, setNewCompType] = useState<'text' | 'list'>('text');
 
   const toggle = (key: string) =>
     setCollapsed((s) => ({ ...s, [key]: !s[key] }));
@@ -101,6 +102,108 @@ export default function CharacterSheet({ character }: Props) {
     setShowAddTrait(false);
   };
 
+  const handleRemoveSection = (sectionId: string) => {
+    const name =
+      sectionId === '__description' ? 'Description'
+      : sectionId === '__traits' ? 'Traits'
+      : character.additionalComponents.find((c) => c.id === sectionId)?.name ?? 'this section';
+    Alert.alert('Remove Section', `Remove "${name}" from the sheet?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => removeCharacterSection(character.id, sectionId) },
+    ]);
+  };
+
+  const resetAddComp = () => {
+    setAddingComp(false);
+    setNewCompName('');
+    setNewCompType('text');
+  };
+
+  const handleAddComp = () => {
+    if (!newCompName.trim()) return;
+    addCharacterComponent(character.id, newCompType, newCompName.trim());
+    resetAddComp();
+  };
+
+  const COMP_TYPE_LABEL: Record<string, string> = { text: 'Text', list: 'List' };
+
+  const renderAddSectionModal = () => (
+    <Modal
+      visible={addingComp}
+      transparent
+      animationType="fade"
+      onRequestClose={resetAddComp}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <TouchableWithoutFeedback onPress={resetAddComp}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <GlassCard scheme={scheme} style={styles.modalCard}>
+                <Text style={[styles.modalTitle, { color: scheme.text }]}>New Section</Text>
+                <TextInput
+                  value={newCompName}
+                  onChangeText={setNewCompName}
+                  placeholder="Section name (e.g. Equipment, Notes)"
+                  placeholderTextColor={scheme.textMuted}
+                  style={[
+                    styles.modalInput,
+                    {
+                      color: scheme.text,
+                      borderColor: scheme.surfaceBorder,
+                      backgroundColor: scheme.primaryMuted,
+                    },
+                  ]}
+                  autoFocus
+                  selectionColor={scheme.primary}
+                />
+                <View style={styles.typeRow}>
+                  {(['text', 'list'] as const).map((t) => (
+                    <TouchableOpacity
+                      key={t}
+                      onPress={() => setNewCompType(t)}
+                      style={[
+                        styles.typeBtn,
+                        {
+                          backgroundColor: newCompType === t ? scheme.primaryMuted : scheme.surface,
+                          borderColor: newCompType === t ? scheme.primary : scheme.surfaceBorder,
+                        },
+                      ]}
+                    >
+                      <GlassHighlight borderRadius={8} />
+                      <Text
+                        style={[
+                          styles.typeBtnText,
+                          { color: newCompType === t ? scheme.primary : scheme.textSecondary },
+                        ]}
+                      >
+                        {COMP_TYPE_LABEL[t]}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={styles.modalActions}>
+                  <GlassButton label="Cancel" onPress={resetAddComp} scheme={scheme} variant="ghost" small style={{ flex: 1 }} />
+                  <GlassButton label="Add" onPress={handleAddComp} scheme={scheme} variant="primary" small style={{ flex: 1 }} disabled={!newCompName.trim()} />
+                </View>
+              </GlassCard>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+
+  const sectionOrder = character.sectionOrder ?? [
+    '__description', '__traits',
+    ...character.additionalComponents.map((c) => c.id),
+  ];
+
+  // Hide the whole card when no sections remain and not editing
+  if (sectionOrder.length === 0 && !isEditMode) return null;
+
   return (
     <GlassCard scheme={scheme} style={styles.card}>
       {/* ── Name & XP ─────────────────────────────── */}
@@ -116,201 +219,128 @@ export default function CharacterSheet({ character }: Props) {
         <TouchableOpacity onPress={openXpModal} style={styles.xpBox} activeOpacity={0.7}>
           <Text style={[styles.xpLabel, { color: scheme.textSecondary }]}>XP</Text>
           <View style={[styles.xpDisplay, { borderColor: scheme.surfaceBorder }]}>
-            <Text style={[styles.xpValue, { color: scheme.primary }]}>
-              {character.xp}
-            </Text>
+            <Text style={[styles.xpValue, { color: scheme.primary }]}>{character.xp}</Text>
           </View>
         </TouchableOpacity>
       </View>
 
       {/* ── XP Modal ──────────────────────────────── */}
-      <ModalOverlay
-        visible={showXpModal}
-        onClose={() => setShowXpModal(false)}
-        scheme={scheme}
-        title="Experience Points"
-      >
+      <ModalOverlay visible={showXpModal} onClose={() => setShowXpModal(false)} scheme={scheme} title="Experience Points">
         <View style={styles.xpModalRow}>
-          <TouchableOpacity
-            onPress={() => adjustXp(-1)}
-            style={[styles.xpAdjustBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.surface }]}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity onPress={() => adjustXp(-1)} style={[styles.xpAdjustBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.surface }]} activeOpacity={0.7}>
             <Text style={[styles.xpAdjustText, { color: scheme.destructive }]}>−</Text>
           </TouchableOpacity>
-
           <TextInput
             value={draftXp}
-            onChangeText={(v) => {
-              if (v === '' || /^\d+$/.test(v)) setDraftXp(v);
-            }}
+            onChangeText={(v) => { if (v === '' || /^\d+$/.test(v)) setDraftXp(v); }}
             keyboardType="number-pad"
-            style={[
-              styles.xpModalInput,
-              {
-                color: scheme.primary,
-                borderColor: scheme.surfaceBorder,
-                backgroundColor: scheme.primaryMuted,
-              },
-            ]}
+            style={[styles.xpModalInput, { color: scheme.primary, borderColor: scheme.surfaceBorder, backgroundColor: scheme.primaryMuted }]}
             selectionColor={scheme.primary}
             selectTextOnFocus
             autoFocus
           />
-
-          <TouchableOpacity
-            onPress={() => adjustXp(1)}
-            style={[styles.xpAdjustBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.surface }]}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity onPress={() => adjustXp(1)} style={[styles.xpAdjustBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.surface }]} activeOpacity={0.7}>
             <Text style={[styles.xpAdjustText, { color: scheme.primary }]}>+</Text>
           </TouchableOpacity>
         </View>
-
         <View style={styles.modalActions}>
-          <GlassButton
-            label="Cancel"
-            onPress={() => setShowXpModal(false)}
-            scheme={scheme}
-            variant="ghost"
-            small
-            style={{ flex: 1 }}
-          />
-          <GlassButton
-            label="Save"
-            onPress={handleXpSave}
-            scheme={scheme}
-            variant="primary"
-            small
-            style={{ flex: 1 }}
-          />
+          <GlassButton label="Cancel" onPress={() => setShowXpModal(false)} scheme={scheme} variant="ghost" small style={{ flex: 1 }} />
+          <GlassButton label="Save" onPress={handleXpSave} scheme={scheme} variant="primary" small style={{ flex: 1 }} />
         </View>
       </ModalOverlay>
 
-      {/* ── Description ───────────────────────────── */}
-      <CollapsibleSection
-        title="Description"
-        scheme={scheme}
-        collapsed={collapsed.description}
-        onToggle={() => toggle('description')}
-      >
-        <TextContentRow
-          content={character.description}
-          scheme={scheme}
-          placeholder="Tap to add description..."
-          title="Description"
-          onSave={(v) => updateCharacterField(character.id, 'description', v)}
-        />
-      </CollapsibleSection>
-
-      {/* ── Traits ────────────────────────────────── */}
-      <CollapsibleSection
-        title="Traits"
-        scheme={scheme}
-        collapsed={collapsed.traits}
-        onToggle={() => toggle('traits')}
-        rightContent={
-          <TouchableOpacity
-            onPress={() => {
-              setNewTraitName('');
-              setNewTraitLevel(1);
-              setShowAddTrait(true);
-            }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={[styles.addBtn, { color: scheme.primary }]}>+</Text>
-          </TouchableOpacity>
-        }
-      >
-        {character.traits.length === 0 ? (
-          <Text style={[styles.empty, { color: scheme.textMuted }]}>
-            No traits yet. Tap + to add one.
-          </Text>
-        ) : null}
-
-        {character.traits.map((trait) => (
-          <TraitRow
-            key={trait.id}
-            trait={trait}
-            scheme={scheme}
-            onUpdate={(name, level) => updateTrait(character.id, trait.id, name, level)}
-            onRemove={() => removeTrait(character.id, trait.id)}
-          />
-        ))}
-      </CollapsibleSection>
-
-      {/* ── Add Trait Modal ─────────────────────────── */}
-      <ModalOverlay
-        visible={showAddTrait}
-        onClose={() => setShowAddTrait(false)}
-        scheme={scheme}
-        title="New Trait"
-      >
-        <GlassInput
-          scheme={scheme}
-          label="Trait Name"
-          value={newTraitName}
-          onChangeText={setNewTraitName}
-          placeholder="e.g. Swordsmanship"
-          containerStyle={{ marginBottom: 16 }}
-        />
-
-        <Text style={[styles.levelLabel, { color: scheme.textSecondary }]}>
-          Level
-        </Text>
-        <View style={styles.levelRow}>
-          {[1, 2, 3, 4, 5, 6].map((l) => (
+      {/* ── Unified Section Rendering ─────────────── */}
+      {sectionOrder.map((sectionId, idx) => {
+        const totalSections = sectionOrder.length;
+        const editControls = isEditMode ? (
+          <View style={styles.editControls}>
             <TouchableOpacity
-              key={l}
-              onPress={() => setNewTraitLevel(l)}
-              style={[
-                styles.levelPip,
-                {
-                  backgroundColor:
-                    l <= newTraitLevel
-                      ? scheme.levelColors[newTraitLevel - 1]
-                      : scheme.surface,
-                  borderColor:
-                    l <= newTraitLevel ? scheme.primary : scheme.surfaceBorder,
-                },
-              ]}
+              onPress={() => reorderCharacterSection(character.id, idx, idx - 1)}
+              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+              disabled={idx === 0}
             >
-              <Text
-                style={{
-                  color: l <= newTraitLevel ? scheme.text : scheme.textMuted,
-                  fontSize: 11,
-                  fontWeight: '700',
-                }}
-              >
-                {l}
-              </Text>
+              <Text style={[styles.reorderArrow, { color: idx === 0 ? scheme.textMuted : scheme.primary }]}>↑</Text>
             </TouchableOpacity>
-          ))}
-        </View>
+            <TouchableOpacity
+              onPress={() => reorderCharacterSection(character.id, idx, idx + 1)}
+              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+              disabled={idx === totalSections - 1}
+            >
+              <Text style={[styles.reorderArrow, { color: idx === totalSections - 1 ? scheme.textMuted : scheme.primary }]}>↓</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleRemoveSection(sectionId)}
+              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+            >
+              <Ionicons name="close-circle" size={18} color={scheme.destructive} />
+            </TouchableOpacity>
+          </View>
+        ) : null;
 
-        <View style={styles.modalActions}>
-          <GlassButton
-            label="Cancel"
-            onPress={() => setShowAddTrait(false)}
-            scheme={scheme}
-            variant="ghost"
-            small
-            style={{ flex: 1 }}
-          />
-          <GlassButton
-            label="Add Trait"
-            onPress={handleAddTrait}
-            scheme={scheme}
-            variant="primary"
-            small
-            style={{ flex: 1 }}
-            disabled={!newTraitName.trim()}
-          />
-        </View>
-      </ModalOverlay>
+        // ── Description ──
+        if (sectionId === '__description') {
+          return (
+            <CollapsibleSection
+              key="__description"
+              title="Description"
+              scheme={scheme}
+              collapsed={collapsed.description ?? false}
+              onToggle={() => toggle('description')}
+              rightContent={editControls}
+            >
+              <TextContentRow
+                content={character.description}
+                scheme={scheme}
+                placeholder="Tap to add description..."
+                title="Description"
+                onSave={(v) => updateCharacterField(character.id, 'description', v)}
+              />
+            </CollapsibleSection>
+          );
+        }
 
-      {/* ── Additional Components ──────────────────── */}
-      {character.additionalComponents.map((comp) => {
+        // ── Traits ──
+        if (sectionId === '__traits') {
+          return (
+            <CollapsibleSection
+              key="__traits"
+              title="Traits"
+              scheme={scheme}
+              collapsed={collapsed.traits ?? true}
+              onToggle={() => toggle('traits')}
+              rightContent={
+                isEditMode ? editControls : (
+                  <TouchableOpacity
+                    onPress={() => { setNewTraitName(''); setNewTraitLevel(1); setShowAddTrait(true); }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={[styles.addBtn, { color: scheme.primary }]}>+</Text>
+                  </TouchableOpacity>
+                )
+              }
+            >
+              {character.traits.length === 0 ? (
+                <Text style={[styles.empty, { color: scheme.textMuted }]}>No traits yet. Tap + to add one.</Text>
+              ) : null}
+              {character.traits.map((trait, tIdx) => (
+                <TraitRow
+                  key={trait.id}
+                  trait={trait}
+                  scheme={scheme}
+                  onUpdate={(name, level) => updateTrait(character.id, trait.id, name, level)}
+                  onRemove={() => removeTrait(character.id, trait.id)}
+                  onMoveUp={tIdx > 0 ? () => reorderCharacterTraits(character.id, tIdx, tIdx - 1) : undefined}
+                  onMoveDown={tIdx < character.traits.length - 1 ? () => reorderCharacterTraits(character.id, tIdx, tIdx + 1) : undefined}
+                />
+              ))}
+            </CollapsibleSection>
+          );
+        }
+
+        // ── Custom Components ──
+        const comp = character.additionalComponents.find((c) => c.id === sectionId);
+        if (!comp) return null;
+
         if (comp.type === 'list') {
           const listComp = comp as AdditionalListComponent;
           return (
@@ -321,53 +351,41 @@ export default function CharacterSheet({ character }: Props) {
               collapsed={collapsed[comp.id] ?? true}
               onToggle={() => toggle(comp.id)}
               rightContent={
-                <TouchableOpacity
-                  onPress={() => setAddingItemCompId(comp.id)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={[styles.addBtn, { color: scheme.primary }]}>+</Text>
-                </TouchableOpacity>
+                isEditMode ? editControls : (
+                  <TouchableOpacity
+                    onPress={() => setAddingItemCompId(comp.id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={[styles.addBtn, { color: scheme.primary }]}>+</Text>
+                  </TouchableOpacity>
+                )
               }
             >
               {listComp.items.length === 0 ? (
-                <Text style={[styles.empty, { color: scheme.textMuted }]}>
-                  No items yet. Tap + to add.
-                </Text>
+                <Text style={[styles.empty, { color: scheme.textMuted }]}>No items yet. Tap + to add.</Text>
               ) : null}
-              {listComp.items.map((item) => (
+              {listComp.items.map((item, itemIdx) => (
                 <NamedItemRow
                   key={item.id}
                   item={item}
                   scheme={scheme}
-                  onUpdate={(name, desc) =>
-                    updateCharacterComponentListItem(
-                      character.id,
-                      comp.id,
-                      item.id,
-                      name,
-                      desc
-                    )
-                  }
-                  onRemove={() =>
-                    removeCharacterComponentListItem(character.id, comp.id, item.id)
-                  }
+                  onUpdate={(name, desc) => updateCharacterComponentListItem(character.id, comp.id, item.id, name, desc)}
+                  onRemove={() => removeCharacterComponentListItem(character.id, comp.id, item.id)}
+                  onMoveUp={itemIdx > 0 ? () => reorderCharacterComponentListItems(character.id, comp.id, itemIdx, itemIdx - 1) : undefined}
+                  onMoveDown={itemIdx < listComp.items.length - 1 ? () => reorderCharacterComponentListItems(character.id, comp.id, itemIdx, itemIdx + 1) : undefined}
                 />
               ))}
               <AddItemRow
                 visible={addingItemCompId === comp.id}
                 scheme={scheme}
                 title={`Add ${comp.name}`}
-                onAdd={(name, desc) => {
-                  addCharacterComponentListItem(character.id, comp.id, name, desc);
-                  setAddingItemCompId(null);
-                }}
+                onAdd={(name, desc) => { addCharacterComponentListItem(character.id, comp.id, name, desc); setAddingItemCompId(null); }}
                 onCancel={() => setAddingItemCompId(null)}
               />
             </CollapsibleSection>
           );
         }
 
-        // Number component
         if (comp.type === 'number') {
           const numComp = comp as AdditionalNumberComponent;
           return (
@@ -377,15 +395,10 @@ export default function CharacterSheet({ character }: Props) {
               scheme={scheme}
               collapsed={collapsed[comp.id] ?? true}
               onToggle={() => toggle(comp.id)}
+              rightContent={editControls}
             >
-              <TouchableOpacity
-                onPress={() => openNumberModal(numComp)}
-                activeOpacity={0.7}
-                style={styles.numBox}
-              >
-                <Text style={[styles.numValue, { color: scheme.primary }]}>
-                  {numComp.value}
-                </Text>
+              <TouchableOpacity onPress={() => setEditingNumber(numComp)} activeOpacity={0.7} style={styles.numBox}>
+                <Text style={[styles.numValue, { color: scheme.primary }]}>{numComp.value}</Text>
               </TouchableOpacity>
             </CollapsibleSection>
           );
@@ -399,59 +412,75 @@ export default function CharacterSheet({ character }: Props) {
             scheme={scheme}
             collapsed={collapsed[comp.id] ?? true}
             onToggle={() => toggle(comp.id)}
+            rightContent={editControls}
           >
             <TextContentRow
-              content={(comp as { content: string }).content}
+              content={(comp as AdditionalTextComponent).content}
               scheme={scheme}
               placeholder={`Tap to add ${comp.name.toLowerCase()}...`}
               title={comp.name}
-              onSave={(v) =>
-                updateCharacterComponentText(character.id, comp.id, comp.name, v)
-              }
+              onSave={(v) => updateCharacterComponentText(character.id, comp.id, comp.name, v)}
             />
           </CollapsibleSection>
         );
       })}
 
-      {/* ── Number Component Edit Modal ─────────────── */}
-      <ModalOverlay
-        visible={editingNumberId !== null}
-        onClose={() => setEditingNumberId(null)}
-        scheme={scheme}
-        title={
-          character.additionalComponents.find((c) => c.id === editingNumberId)?.name ?? ''
-        }
-      >
-        <View style={styles.xpModalRow}>
-          <TouchableOpacity
-            onPress={() => adjustNumber(-1)}
-            style={[styles.xpAdjustBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.surface }]}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.xpAdjustText, { color: scheme.destructive }]}>−</Text>
-          </TouchableOpacity>
-          <TextInput
-            value={draftNumber}
-            onChangeText={(v) => { if (v === '' || /^-?\d+$/.test(v)) setDraftNumber(v); }}
-            keyboardType="number-pad"
-            style={[styles.xpModalInput, { color: scheme.primary, borderColor: scheme.surfaceBorder, backgroundColor: scheme.primaryMuted }]}
-            selectionColor={scheme.primary}
-            selectTextOnFocus
-            autoFocus
-          />
-          <TouchableOpacity
-            onPress={() => adjustNumber(1)}
-            style={[styles.xpAdjustBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.surface }]}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.xpAdjustText, { color: scheme.primary }]}>+</Text>
-          </TouchableOpacity>
+      {/* ── Add Trait Modal ─────────────────────────── */}
+      <ModalOverlay visible={showAddTrait} onClose={() => setShowAddTrait(false)} scheme={scheme} title="New Trait">
+        <GlassInput
+          scheme={scheme}
+          label="Trait Name"
+          value={newTraitName}
+          onChangeText={setNewTraitName}
+          placeholder="e.g. Swordsmanship"
+          containerStyle={{ marginBottom: 16 }}
+        />
+        <Text style={[styles.levelLabel, { color: scheme.textSecondary }]}>Level</Text>
+        <View style={styles.levelRow}>
+          {TRAIT_LEVELS.map((l) => (
+            <TouchableOpacity
+              key={l}
+              onPress={() => setNewTraitLevel(l)}
+              style={[
+                styles.levelPip,
+                {
+                  backgroundColor: l <= newTraitLevel ? scheme.levelColors[newTraitLevel - 1] : scheme.surface,
+                  borderColor: l <= newTraitLevel ? scheme.primary : scheme.surfaceBorder,
+                },
+              ]}
+            >
+              <Text style={{ color: l <= newTraitLevel ? scheme.text : scheme.textMuted, fontSize: 11, fontWeight: '700' }}>{l}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
         <View style={styles.modalActions}>
-          <GlassButton label="Cancel" onPress={() => setEditingNumberId(null)} scheme={scheme} variant="ghost" small style={{ flex: 1 }} />
-          <GlassButton label="Save" onPress={handleNumberSave} scheme={scheme} variant="primary" small style={{ flex: 1 }} />
+          <GlassButton label="Cancel" onPress={() => setShowAddTrait(false)} scheme={scheme} variant="ghost" small style={{ flex: 1 }} />
+          <GlassButton label="Add Trait" onPress={handleAddTrait} scheme={scheme} variant="primary" small style={{ flex: 1 }} disabled={!newTraitName.trim()} />
         </View>
       </ModalOverlay>
+
+      {/* ── Add Section button (Edit Mode) ──────────── */}
+      {isEditMode && (
+        <TouchableOpacity
+          onPress={() => setAddingComp(true)}
+          style={[styles.addSectionBtn, { borderColor: scheme.surfaceBorder }]}
+        >
+          <Text style={[styles.addSectionText, { color: scheme.textSecondary }]}>+ Add Section</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* ── Number Component Edit Modal ─────────────── */}
+      <NumberEditModal
+        visible={editingNumber !== null}
+        title={editingNumber?.name ?? ''}
+        initialValue={editingNumber?.value ?? 0}
+        scheme={scheme}
+        onSave={(n) => { if (editingNumber) updateCharacterComponentNumber(character.id, editingNumber.id, n); }}
+        onClose={() => setEditingNumber(null)}
+      />
+
+      {/* ── Add Section Modal ───────────────────────── */}
+      {renderAddSectionModal()}
     </GlassCard>
   );
 }
@@ -572,5 +601,66 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  editControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  reorderArrow: {
+    fontSize: 16,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  addSectionBtn: {
+    marginTop: 4,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderRadius: 10,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+  },
+  addSectionText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 4,
+  },
+  typeBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 7,
+    alignItems: 'center',
+  },
+  typeBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

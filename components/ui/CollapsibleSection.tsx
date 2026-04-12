@@ -43,15 +43,7 @@ export default function CollapsibleSection({
 
   return (
     <View style={[styles.container, style]}>
-      <View
-        style={[
-          styles.header,
-          {
-            borderBottomColor: collapsed ? 'transparent' : scheme.surfaceBorder,
-            borderBottomWidth: collapsed ? 0 : 1,
-          },
-        ]}
-      >
+      <View style={styles.header}>
         <TouchableOpacity
           onPress={handleToggle}
           activeOpacity={0.7}
@@ -65,7 +57,20 @@ export default function CollapsibleSection({
         {rightContent ? <View style={styles.rightSlot}>{rightContent}</View> : null}
       </View>
       {!collapsed && (
-        <View style={[styles.content, indent && styles.indent]}>{children}</View>
+        <View
+          style={[
+            styles.content,
+            indent && styles.indent,
+            {
+              borderWidth: 1,
+              borderColor: scheme.surfaceBorder,
+              borderRadius: 10,
+              padding: 8,
+            },
+          ]}
+        >
+          {children}
+        </View>
       )}
     </View>
   );
@@ -102,9 +107,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     flex: 1,
   },
-  content: {
-    paddingTop: 8,
-  },
+  content: {},
   indent: {
     paddingLeft: 24,
   },

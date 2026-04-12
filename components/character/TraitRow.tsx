@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
   View,
   Text,
@@ -7,7 +8,9 @@ import {
   Alert,
 } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
+import { TRAIT_LEVELS } from '../../constants/traits';
 import { Trait } from '../../types';
+import { useAppStore } from '../../store/appStore';
 import GlassInput from '../ui/GlassInput';
 import GlassButton from '../ui/GlassButton';
 import ModalOverlay from '../ui/ModalOverlay';
@@ -17,11 +20,12 @@ interface Props {
   scheme: ColorScheme;
   onUpdate: (name: string, level: number) => void;
   onRemove: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
-const LEVELS = [1, 2, 3, 4, 5, 6];
-
-export default function TraitRow({ trait, scheme, onUpdate, onRemove }: Props) {
+export default function TraitRow({ trait, scheme, onUpdate, onRemove, onMoveUp, onMoveDown }: Props) {
+  const { isEditMode } = useAppStore();
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(trait.name);
   const [editLevel, setEditLevel] = useState(trait.level);
@@ -48,11 +52,11 @@ export default function TraitRow({ trait, scheme, onUpdate, onRemove }: Props) {
           setEditing(true);
         }}
         activeOpacity={0.8}
-        style={[styles.row, { borderBottomColor: scheme.surfaceBorder }]}
+        style={styles.row}
       >
         <Text style={[styles.name, { color: scheme.text }]}>{trait.name}</Text>
         <View style={styles.pips}>
-          {LEVELS.map((l) => (
+          {TRAIT_LEVELS.map((l) => (
             <View
               key={l}
               style={[
@@ -68,6 +72,30 @@ export default function TraitRow({ trait, scheme, onUpdate, onRemove }: Props) {
             />
           ))}
         </View>
+        {(onMoveUp !== undefined || onMoveDown !== undefined) && (
+          <View style={styles.moveButtons}>
+            <TouchableOpacity
+              onPress={onMoveUp}
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            >
+              <Text style={[styles.moveArrow, { color: onMoveUp ? scheme.primary : scheme.textMuted }]}>↑</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onMoveDown}
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            >
+              <Text style={[styles.moveArrow, { color: onMoveDown ? scheme.primary : scheme.textMuted }]}>↓</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {isEditMode && (
+          <TouchableOpacity
+            onPress={handleRemove}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close-circle" size={18} color={scheme.destructive} />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
 
       <ModalOverlay
@@ -89,7 +117,7 @@ export default function TraitRow({ trait, scheme, onUpdate, onRemove }: Props) {
           Level
         </Text>
         <View style={styles.levelRow}>
-          {LEVELS.map((l) => (
+          {TRAIT_LEVELS.map((l) => (
             <TouchableOpacity
               key={l}
               onPress={() => setEditLevel(l)}
@@ -158,7 +186,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    borderBottomWidth: 1,
     gap: 12,
   },
   name: {
@@ -210,5 +237,15 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
+  },
+  moveButtons: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 2,
+  },
+  moveArrow: {
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 16,
   },
 });

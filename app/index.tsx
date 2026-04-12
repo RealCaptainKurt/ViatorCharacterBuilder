@@ -34,6 +34,7 @@ export default function MainScreen() {
     activeCharacterId,
     activeCampaignId,
     isSidebarOpen,
+    isEditMode,
     openSidebar,
     closeSidebar,
   } = useAppStore();
@@ -165,6 +166,16 @@ export default function MainScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            {/* Add Character prompt (above campaign, edit mode only) */}
+            {!activeChar && activeCamp && isEditMode && (
+              <TouchableOpacity
+                onPress={openSidebar}
+                style={[styles.addEntityBtn, { borderColor: scheme.surfaceBorder }]}
+              >
+                <Text style={[styles.addEntityText, { color: scheme.textSecondary }]}>+ Add Character</Text>
+              </TouchableOpacity>
+            )}
+
             {/* Character sheet */}
             {activeChar && <CharacterSheet character={activeChar} />}
 
@@ -175,6 +186,16 @@ export default function MainScreen() {
                 isStandalone={!campaignIsLinked}
                 schemeOverride={campaignSchemeOverride}
               />
+            )}
+
+            {/* Add Campaign prompt (below character, edit mode only) */}
+            {activeChar && !activeCamp && isEditMode && (
+              <TouchableOpacity
+                onPress={openSidebar}
+                style={[styles.addEntityBtn, { borderColor: scheme.surfaceBorder }]}
+              >
+                <Text style={[styles.addEntityText, { color: scheme.textSecondary }]}>+ Add Campaign</Text>
+              </TouchableOpacity>
             )}
 
             {/* Extra bottom padding to clear the floating toolbar */}
@@ -321,5 +342,17 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '800',
     letterSpacing: 1,
+  },
+  addEntityBtn: {
+    marginBottom: 12,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+  },
+  addEntityText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
