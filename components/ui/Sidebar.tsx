@@ -24,6 +24,7 @@ interface Props {
   onClose: () => void;
   onNewGame: () => void;
   onRules: () => void;
+  onImportExport: () => void;
   scheme: ColorScheme;
 }
 
@@ -32,6 +33,7 @@ export default function Sidebar({
   onClose,
   onNewGame,
   onRules,
+  onImportExport,
   scheme,
 }: Props) {
   // Use individual selectors for fine-grained reactivity
@@ -146,6 +148,7 @@ export default function Sidebar({
           {/* Nav Buttons */}
           <NavItem icon={<MaterialCommunityIcons name="star-four-points" size={16} color={scheme.textSecondary} />} label="New Game" onPress={onNewGame} scheme={scheme} />
           <NavItem icon={<MaterialCommunityIcons name="book-open-variant" size={16} color={scheme.textSecondary} />} label="Rules Reference" onPress={onRules} scheme={scheme} />
+          <NavItem icon={<MaterialCommunityIcons name="swap-vertical" size={16} color={scheme.textSecondary} />} label="Import / Export" onPress={onImportExport} scheme={scheme} />
 
           <View style={[styles.divider, { backgroundColor: dividerColor }]} />
 

@@ -188,6 +188,9 @@ interface AppState {
   // Link/unlink
   linkCharacterToCampaign: (characterId: string, campaignId: string) => void;
   unlinkCharacterFromCampaign: (characterId: string) => void;
+
+  // Import
+  importData: (characters: Character[], campaigns: Campaign[]) => void;
 }
 
 // ─── Helper: reorder array ────────────────────────────────────────────────────
@@ -918,6 +921,51 @@ export const useAppStore = create<AppState>((set, get) => ({
         updates.campaigns = { ...s.campaigns, [camp.id]: updatedCamp };
       }
       return updates;
+    });
+  },
+
+  importData: (incomingChars, incomingCamps) => {
+    set((s) => {
+      // Build ID remapping tables so we can fix cross-links after deduplication
+      const charIdMap: Record<string, string> = {};
+      const campIdMap: Record<string, string> = {};
+
+      const newChars = { ...s.characters };
+      const newCamps = { ...s.campaigns };
+
+      // First pass: assign final IDs (generate new ones for collisions)
+      for (const char of incomingChars) {
+        const finalId = newChars[char.id] ? generateId() : char.id;
+        charIdMap[char.id] = finalId;
+      }
+      for (const camp of incomingCamps) {
+        const finalId = newCamps[camp.id] ? generateId() : camp.id;
+        campIdMap[camp.id] = finalId;
+      }
+
+      // Second pass: insert with remapped cross-link IDs
+      for (const char of incomingChars) {
+        const finalId = charIdMap[char.id];
+        const remappedCampId =
+          char.campaignId != null
+            ? (campIdMap[char.campaignId] ?? char.campaignId)
+            : null;
+        const finalChar: Character = { ...char, id: finalId, campaignId: remappedCampId };
+        newChars[finalId] = finalChar;
+        persistChar(finalChar);
+      }
+      for (const camp of incomingCamps) {
+        const finalId = campIdMap[camp.id];
+        const remappedCharId =
+          camp.characterId != null
+            ? (charIdMap[camp.characterId] ?? camp.characterId)
+            : null;
+        const finalCamp: Campaign = { ...camp, id: finalId, characterId: remappedCharId };
+        newCamps[finalId] = finalCamp;
+        persistCamp(finalCamp);
+      }
+
+      return { characters: newChars, campaigns: newCamps };
     });
   },
 }));

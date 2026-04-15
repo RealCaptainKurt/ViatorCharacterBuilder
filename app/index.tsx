@@ -234,7 +234,11 @@ export default function MainScreen() {
         }}
         onRules={() => {
           closeSidebar();
-          // Rules reference placeholder
+          router.push('/rules-reference');
+        }}
+        onImportExport={() => {
+          closeSidebar();
+          router.push('/import-export');
         }}
       />
 

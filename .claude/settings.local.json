@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npx expo:*)",
       "Bash(ls /c/Code/Personal/ViatorCharacterBuilder/ViatorCharacterBuilder-Claude/app/\\\\\\(tabs\\\\\\)/)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(ls /home/kurt/Code/ViatorCharacterBuilder/node_modules/expo-router/build/*.d.ts)"
     ]
   }
 }
