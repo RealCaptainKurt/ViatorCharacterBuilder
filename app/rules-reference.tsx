@@ -157,7 +157,14 @@ const VIATOR_SECTIONS: RulesSection[] = [
   },
   {
     title: "Spellcasting",
-    content: "",
+    content: "Spells in Viator are any actions, magical or otherwise, that can do more than just harming one enemy. Like skills, the spells available to a character are mostly defined by their Traits. A \"Fiery Mage (3)\" can blast a fireball or light an enemy ablaze, but probably couldn't cure wounds or poison targets. A \"Dutiful Paladin\" can probably heal wounds and smite enemies, but couldn't talk with animals or summon demons." +
+    "\n\nSpells are defined by their effect rather than their source, so shooting a fireball and throwing a grenade are treated the same way." +
+    "\n\nTo cast a spell, describe the effects that you want the spell to have (eg. blowing up a box, flipping gravity, or changing hair color), then use the following chart to give it a fair TN based on the effect and the scale of the spell. Then, roll a Check against the TN to attempt to cast the spell. On a success, the spell casts without issue, although NPCs may attempt to make a counter Check to beat your roll in order to avoid the effect. On a failure, ask the Oracle for a Failure Move." +
+    "\n\n1 - Small effects, or spells with limited scope or small targets" +
+    "\n2 - Moderate effects, or spells targeting a small number of creatures" +
+    "\n3 - Notable effects, or spells targeting several creatures" +
+    "\n4 - Major effects, or spells covering wide areas" +
+    "\n5 - Extreme effects, or spells with worldwide ranges",
   },
   {
     title: "Optional Rules",
