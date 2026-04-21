@@ -1,42 +1,60 @@
 import React, { useState } from 'react';
-import { Feather, Ionicons } from '@expo/vector-icons';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+} from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
-import { TextListItem } from '../../types';
 import { useAppStore } from '../../store/appStore';
+import GlassInput from './GlassInput';
 import GlassButton from './GlassButton';
 import ModalOverlay from './ModalOverlay';
 import EditControls from './EditControls';
 
 interface Props {
-  item: TextListItem;
+  name: string;
+  content: string;
   scheme: ColorScheme;
   onUpdate: (name: string, content: string) => void;
   onRemove: () => void;
+  accentColor?: string;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  placeholder?: string;
 }
 
-export default function TextListItemRow({
-  item,
+export default function ExpandableTextRow({
+  name,
+  content,
   scheme,
   onUpdate,
   onRemove,
+  accentColor,
   onMoveUp,
   onMoveDown,
+  placeholder = 'Tap to edit...',
 }: Props) {
   const { isEditMode } = useAppStore();
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
-  const openEdit = () => {
-    setDraft(item.content);
-    setEditing(true);
-  };
+  const [editName, setEditName] = useState(name);
+  const [editContent, setEditContent] = useState(content);
+
+  const arrowColor = accentColor ?? scheme.primary;
 
   const handleSave = () => {
-    onUpdate(item.name, draft);
+    if (!editName.trim()) return;
+    onUpdate(editName.trim(), editContent.trim());
     setEditing(false);
+  };
+
+  const openEdit = () => {
+    setEditName(name);
+    setEditContent(content);
+    setEditing(true);
   };
 
   return (
@@ -45,13 +63,14 @@ export default function TextListItemRow({
         {/* Header row — always visible */}
         <TouchableOpacity
           onPress={() => setExpanded((v) => !v)}
+          onLongPress={openEdit}
           activeOpacity={0.75}
           style={styles.headerRow}
         >
-          <Text style={[styles.arrow, { color: scheme.primary }]}>
+          <Text style={[styles.arrow, { color: arrowColor }]}>
             {expanded ? '⌄' : '›'}
           </Text>
-          <Text style={[styles.name, { color: scheme.text, flex: 1 }]}>{item.name}</Text>
+          <Text style={[styles.name, { color: scheme.text, flex: 1 }]}>{name}</Text>
           
           {isEditMode && (
             <EditControls
@@ -68,11 +87,13 @@ export default function TextListItemRow({
           <View style={styles.expandedBody}>
             <View style={styles.contentRow}>
               <TouchableOpacity onPress={openEdit} activeOpacity={0.75} style={{ flex: 1 }}>
-                {item.content ? (
-                  <Text style={[styles.content, { color: scheme.textSecondary }]}>{item.content}</Text>
-                ) : (
-                  <Text style={[styles.placeholder, { color: scheme.textMuted }]}>Tap to add content…</Text>
-                )}
+                <Text style={[
+                  styles.content,
+                  { color: content ? scheme.textSecondary : scheme.textMuted,
+                    fontStyle: content ? 'normal' : 'italic' },
+                ]}>
+                  {content || placeholder}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={openEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.editBtn}>
                 <Feather name="edit-2" size={13} color={scheme.textMuted} />
@@ -82,35 +103,55 @@ export default function TextListItemRow({
         )}
       </View>
 
-      {/* Edit modal */}
       <ModalOverlay
         visible={editing}
         onClose={() => setEditing(false)}
         scheme={scheme}
-        title={item.name}
         maxWidth={460}
       >
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
+        <GlassInput
+          scheme={scheme}
+          label="Name"
+          value={editName}
+          onChangeText={setEditName}
+          containerStyle={{ marginBottom: 12 }}
+        />
+        <GlassInput
+          scheme={scheme}
+          label="Content"
+          value={editContent}
+          onChangeText={setEditContent}
           multiline
-          autoFocus
-          textAlignVertical="top"
-          style={[
-            styles.input,
-            {
-              color: scheme.text,
-              borderColor: scheme.surfaceBorder,
-              backgroundColor: scheme.primaryMuted,
-            },
-          ]}
-          placeholder="Tap to add content…"
-          placeholderTextColor={scheme.textMuted}
-          selectionColor={scheme.primary}
+          minHeight={80}
+          placeholder={placeholder}
+          containerStyle={{ marginBottom: 20 }}
         />
         <View style={styles.actions}>
-          <GlassButton label="Cancel" onPress={() => setEditing(false)} scheme={scheme} variant="ghost" small style={{ flex: 1 }} />
-          <GlassButton label="Save" onPress={handleSave} scheme={scheme} variant="primary" small style={{ flex: 1 }} />
+          <GlassButton
+            label="Remove"
+            onPress={() => { setEditing(false); setTimeout(onRemove, 200); }}
+            scheme={scheme}
+            variant="destructive"
+            small
+            style={{ flex: 1 }}
+          />
+          <GlassButton
+            label="Cancel"
+            onPress={() => setEditing(false)}
+            scheme={scheme}
+            variant="ghost"
+            small
+            style={{ flex: 1 }}
+          />
+          <GlassButton
+            label="Save"
+            onPress={handleSave}
+            scheme={scheme}
+            variant="primary"
+            small
+            style={{ flex: 1 }}
+            disabled={!editName.trim()}
+          />
         </View>
       </ModalOverlay>
     </>
@@ -154,21 +195,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  placeholder: {
-    fontSize: 13,
-    fontStyle: 'italic',
-  },
   editBtn: {
     paddingTop: 2,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 14,
-    lineHeight: 20,
-    minHeight: 110,
-    marginBottom: 16,
   },
   actions: {
     flexDirection: 'row',

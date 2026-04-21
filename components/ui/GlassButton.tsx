@@ -14,7 +14,8 @@ import { ColorScheme } from '../../constants/colorSchemes';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 
 interface Props {
-  label: string;
+  label?: string;
+  icon?: React.ReactNode;
   onPress: () => void;
   scheme: ColorScheme;
   variant?: Variant;
@@ -27,6 +28,7 @@ interface Props {
 
 export default function GlassButton({
   label,
+  icon,
   onPress,
   scheme,
   variant = 'primary',
@@ -86,9 +88,14 @@ export default function GlassButton({
       {loading ? (
         <ActivityIndicator size="small" color={color} />
       ) : (
-        <Text style={[styles.label, { color }, small && styles.smallLabel, textStyle]}>
-          {label}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: label && icon ? 6 : 0, justifyContent: 'center' }}>
+          {icon}
+          {label ? (
+            <Text style={[styles.label, { color }, small && styles.smallLabel, textStyle]}>
+              {label}
+            </Text>
+          ) : null}
+        </View>
       )}
     </TouchableOpacity>
   );

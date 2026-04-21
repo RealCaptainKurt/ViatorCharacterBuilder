@@ -16,6 +16,7 @@ import GlassButton from './GlassButton';
 import ModalOverlay from './ModalOverlay';
 import NumberEditModal from './NumberEditModal';
 import EditControls from './EditControls';
+import NPCTraitList from './NPCTraitList';
 
 interface Props {
   item: NPCItem;
@@ -48,9 +49,6 @@ export default function NPCRow({
 
   // New trait being added inside the edit modal
   const [newTraitName, setNewTraitName] = useState('');
-
-  // Editing a trait value (number stepper modal)
-  const [editingTrait, setEditingTrait] = useState<NPCTrait | null>(null);
 
   // Sync local edit state when the item changes (e.g. after trait add/remove)
   useEffect(() => {
@@ -132,28 +130,12 @@ export default function NPCRow({
             {item.traits.length > 0 && (
               <>
                 <View style={[styles.sectionDivider, { backgroundColor: scheme.surfaceBorder }]} />
-                <View style={styles.traitsContainer}>
-                  {item.traits.map((trait) => (
-                    <View key={trait.id} style={styles.traitRow}>
-                      <Text style={[styles.traitName, { color: scheme.textSecondary }]}>{trait.name}</Text>
-                      <View style={styles.traitActions}>
-                        <TouchableOpacity
-                          onPress={() => setEditingTrait(trait)}
-                          hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
-                          style={[styles.traitValueBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.primaryMuted }]}
-                        >
-                          <Text style={[styles.traitValue, { color: scheme.primary }]}>{trait.value}</Text>
-                        </TouchableOpacity>
-                        {isEditMode && (
-                          <EditControls
-                            scheme={scheme}
-                            onRemove={() => onRemoveTrait(trait.id)}
-                          />
-                        )}
-                      </View>
-                    </View>
-                  ))}
-                </View>
+                <NPCTraitList
+                  traits={item.traits}
+                  scheme={scheme}
+                  onUpdateTrait={onUpdateTrait}
+                  onRemoveTrait={onRemoveTrait}
+                />
               </>
             )}
           </View>
@@ -195,28 +177,12 @@ export default function NPCRow({
           <View style={[styles.modalDivider, { backgroundColor: scheme.surfaceBorder }]} />
           <Text style={[styles.modalSectionLabel, { color: scheme.textSecondary }]}>TRAITS</Text>
 
-          {item.traits.length > 0 && (
-            <View style={styles.modalTraitsList}>
-              {item.traits.map((trait) => (
-                <View key={trait.id} style={[styles.modalTraitRow, { borderColor: scheme.surfaceBorder }]}>
-                  <Text style={[styles.modalTraitName, { color: scheme.text }]}>{trait.name}</Text>
-                  <TouchableOpacity
-                    onPress={() => setEditingTrait(trait)}
-                    style={[styles.modalTraitValueBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.primaryMuted }]}
-                    hitSlop={{ top: 4, bottom: 4, left: 6, right: 6 }}
-                  >
-                    <Text style={[styles.modalTraitValue, { color: scheme.primary }]}>{trait.value}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => onRemoveTrait(trait.id)}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  >
-                    <Ionicons name="close-circle" size={18} color={scheme.destructive} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
+          <NPCTraitList
+            traits={item.traits}
+            scheme={scheme}
+            onUpdateTrait={onUpdateTrait}
+            onRemoveTrait={onRemoveTrait}
+          />
 
           {/* Add Trait inline */}
           <View style={styles.addTraitRow}>
@@ -250,20 +216,6 @@ export default function NPCRow({
         </View>
       </ModalOverlay>
 
-      {/* Edit trait value */}
-      {editingTrait && (
-        <NumberEditModal
-          visible={!!editingTrait}
-          title={editingTrait.name}
-          initialValue={editingTrait.value}
-          scheme={scheme}
-          onSave={(value) => {
-            onUpdateTrait(editingTrait.id, editingTrait.name, value);
-            setEditingTrait(null);
-          }}
-          onClose={() => setEditingTrait(null)}
-        />
-      )}
     </>
   );
 }

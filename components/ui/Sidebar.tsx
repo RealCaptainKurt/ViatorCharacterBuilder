@@ -88,10 +88,11 @@ export default function Sidebar({
     return {
       standaloneChars: charList.filter((c) => !c.campaignId),
       standaloneCamps: campList.filter((c) => !c.characterId),
-      pairedEntries: charList
+      pairedEntries: Object.values(characters)
         .filter((c) => c.campaignId)
         .map((c) => ({ char: c, camp: campaigns[c.campaignId!] }))
-        .filter((e): e is { char: Character; camp: Campaign } => !!e.camp),
+        .filter((e): e is { char: Character; camp: Campaign } => !!e.camp)
+        .sort((a, b) => Math.max(b.char.updatedAt, b.camp.updatedAt) - Math.max(a.char.updatedAt, a.camp.updatedAt)),
     };
   }, [characters, campaigns]);
 
