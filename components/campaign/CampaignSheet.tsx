@@ -34,17 +34,17 @@ import GlassInput from '../ui/GlassInput';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import ModalOverlay from '../ui/ModalOverlay';
 import TextContentRow from '../ui/TextContentRow';
-import NamedItemRow from '../ui/NamedItemRow';
+import ExpandableTextRow from '../ui/ExpandableTextRow';
 import AddItemRow from '../ui/AddItemRow';
 import NPCRow from '../ui/NPCRow';
-import TextListItemRow from '../ui/TextListItemRow';
 import NumberListItemRow from '../ui/NumberListItemRow';
+import AddSectionModal, { ComponentType } from '../ui/AddSectionModal';
+import StandaloneNPC from '../ui/StandaloneNPC';
 
 import EditControls from '../ui/EditControls';
 
 type ListKey = 'npcs' | 'locations' | 'scenes';
 type NamedListKey = 'locations' | 'scenes';
-type ComponentType = 'text' | 'number' | 'npc' | 'text-list' | 'number-list' | 'npc-list';
 
 interface Props {
   campaign: Campaign;
@@ -59,15 +59,6 @@ const LIST_CONFIG: Record<string, { key: NamedListKey; label: string; accentColo
   __locations: { key: 'locations', label: 'Locations',  accentColorIdx: 1 },
   __scenes:    { key: 'scenes',    label: 'Scenes',     accentColorIdx: 4 },
 };
-
-const COMP_TYPES: { type: ComponentType; label: string }[] = [
-  { type: 'text', label: 'Text' },
-  { type: 'number', label: 'Number' },
-  { type: 'npc', label: 'NPC' },
-  { type: 'text-list', label: 'Text List' },
-  { type: 'number-list', label: 'Number List' },
-  { type: 'npc-list', label: 'NPC List' },
-];
 
 export default function CampaignSheet({ campaign, isStandalone, schemeOverride }: Props) {
   const scheme = schemeOverride ?? COLOR_SCHEMES[campaign.colorScheme];
@@ -124,8 +115,6 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
   const startAdding = (key: AddingKey) => setAdding({ key });
   const stopAdding = () => setAdding({ key: null });
 
-  // Number component editing
-  const [editingNumber, setEditingNumber] = useState<AdditionalNumberComponent | null>(null);
 
   // Section remove confirm
   const [confirmSectionId, setConfirmSectionId] = useState<string | null>(null);
@@ -136,19 +125,9 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
 
   // Add Section modal
   const [addingComp, setAddingComp] = useState(false);
-  const [newCompName, setNewCompName] = useState('');
-  const [newCompType, setNewCompType] = useState<ComponentType>('text');
-  const resetAddComp = () => { setAddingComp(false); setNewCompName(''); setNewCompType('text'); };
-  const handleAddComp = () => {
-    if (!newCompName.trim()) return;
-    addCampaignComponent(campaign.id, newCompType, newCompName.trim());
-    resetAddComp();
+  const handleAddComp = (type: ComponentType, name: string) => {
+    addCampaignComponent(campaign.id, type, name);
   };
-
-  // NPC standalone trait state
-  const [addingNPCTraitCompId, setAddingNPCTraitCompId] = useState<string | null>(null);
-  const [addingNPCTraitName, setAddingNPCTraitName] = useState('');
-  const [editingNPCTrait, setEditingNPCTrait] = useState<{ compId: string; trait: NPCTrait } | null>(null);
 
   // Text-list add state
   const [addingTextListCompId, setAddingTextListCompId] = useState<string | null>(null);
@@ -168,56 +147,7 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
 
   if (sectionOrder.length === 0 && !isEditMode) return null;
 
-  const renderAddSectionModal = () => (
-    <Modal visible={addingComp} transparent animationType="fade" onRequestClose={resetAddComp}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}
-        style={{ flex: 1 }}
-      >
-        <TouchableWithoutFeedback onPress={resetAddComp}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback onPress={() => {}}>
-              <GlassCard scheme={scheme} style={styles.modalCard}>
-                <Text style={[styles.modalTitle, { color: scheme.text }]}>New Section</Text>
-                <TextInput
-                  value={newCompName}
-                  onChangeText={setNewCompName}
-                  placeholder="Section name (e.g. Factions, Notes)"
-                  placeholderTextColor={scheme.textMuted}
-                  style={[styles.modalInput, { color: scheme.text, borderColor: scheme.surfaceBorder, backgroundColor: scheme.primaryMuted }]}
-                  autoFocus
-                  selectionColor={scheme.primary}
-                />
-                <View style={styles.typeGrid}>
-                  {COMP_TYPES.map(({ type, label }) => (
-                    <TouchableOpacity
-                      key={type}
-                      onPress={() => setNewCompType(type)}
-                      style={[
-                        styles.typeBtn,
-                        {
-                          backgroundColor: newCompType === type ? scheme.primaryMuted : scheme.surface,
-                          borderColor: newCompType === type ? scheme.primary : scheme.surfaceBorder,
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.typeBtnText, { color: newCompType === type ? scheme.primary : scheme.textSecondary }]}>
-                        {label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <View style={styles.modalActions}>
-                  <GlassButton label="Cancel" onPress={resetAddComp} scheme={scheme} variant="ghost" small style={{ flex: 1 }} />
-                  <GlassButton label="Add" onPress={handleAddComp} scheme={scheme} variant="primary" small style={{ flex: 1 }} disabled={!newCompName.trim()} />
-                </View>
-              </GlassCard>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
+
 
   return (
     <GlassCard scheme={scheme} style={styles.card}>
@@ -329,9 +259,10 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
               {items.length === 0 && <Text style={[styles.empty, { color: scheme.textMuted }]}>Nothing here yet. Tap + to add.</Text>}
               <View style={{ gap: 8 }}>
                 {items.map((item: NamedItem, itemIdx: number) => (
-                  <NamedItemRow
+                  <ExpandableTextRow
                     key={item.id}
-                    item={item}
+                    name={item.name}
+                    content={item.description}
                     scheme={scheme}
                     accentColor={accentColor}
                     onUpdate={(name, description) => updateCampaignListItem(campaign.id, namedKey, item.id, name, description)}
@@ -353,21 +284,24 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
         }
 
         // ── Custom Components ──
-        const comp = campaign.additionalComponents.find((c) => c.id === sectionId);
-        if (!comp) return null;
+        const compIdx = campaign.additionalComponents.findIndex((c) => c.id === sectionId);
+        if (compIdx === -1) return null;
+        const comp = campaign.additionalComponents[compIdx];
 
         // ── Number (inline, no collapse) ──
         if (comp.type === 'number') {
           const numComp = comp as AdditionalNumberComponent;
           return (
-            <View key={comp.id} style={[styles.inlineNumRow, { borderColor: scheme.surfaceBorder }]}>
-              <View style={[styles.inlineNumTitlePill, { borderColor: scheme.surfaceBorder }]}>
-                <Text style={[styles.inlineNumTitle, { color: scheme.textSecondary }]} numberOfLines={1}>{comp.name}</Text>
-              </View>
-              {isEditMode && editControls}
-              <TouchableOpacity onPress={() => setEditingNumber(numComp)} activeOpacity={0.7} style={[styles.inlineNumValueBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.primaryMuted }]}>
-                <Text style={[styles.inlineNumValue, { color: scheme.primary }]}>{numComp.value}</Text>
-              </TouchableOpacity>
+            <View key={comp.id} style={{ marginTop: 12, marginBottom: 4 }}>
+              <NumberListItemRow
+                item={{ id: numComp.id, name: numComp.name, value: numComp.value }}
+                scheme={scheme}
+                onUpdateValue={(val) => updateCampaignComponentNumber(campaign.id, numComp.id, val)}
+                onRemove={() => handleRemoveSection(comp.id)}
+                confirmRemove={confirmSectionId === comp.id}
+                onMoveUp={idx > 0 ? () => reorderCampaignSection(campaign.id, idx, idx - 1) : undefined}
+                onMoveDown={idx < totalSections - 1 ? () => reorderCampaignSection(campaign.id, idx, idx + 1) : undefined}
+              />
             </View>
           );
         }
@@ -376,35 +310,18 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
         if (comp.type === 'npc') {
           const npcComp = comp as AdditionalNPCComponent;
           return (
-            <CollapsibleSection key={comp.id} title={comp.name} scheme={scheme} collapsed={collapsed[comp.id] ?? true} onToggle={() => toggle(comp.id)} rightContent={editControls}>
-              <TextContentRow
-                content={npcComp.description}
-                scheme={scheme}
-                placeholder="Tap to add description..."
-                title={comp.name}
-                onSave={(v) => updateCampaignNPCComponent(campaign.id, comp.id, comp.name, v)}
-              />
-              {npcComp.traits.length > 0 && (
-                <View style={styles.npcTraitsContainer}>
-                  {npcComp.traits.map((trait) => (
-                    <View key={trait.id} style={styles.npcTraitRow}>
-                      <Text style={[styles.npcTraitName, { color: scheme.textSecondary }]}>{trait.name}</Text>
-                      <TouchableOpacity onPress={() => setEditingNPCTrait({ compId: comp.id, trait })} style={[styles.npcTraitValueBtn, { borderColor: scheme.surfaceBorder, backgroundColor: scheme.primaryMuted }]}>
-                        <Text style={[styles.npcTraitValue, { color: scheme.primary }]}>{trait.value}</Text>
-                      </TouchableOpacity>
-                      {isEditMode && (
-                        <TouchableOpacity onPress={() => removeCampaignNPCTrait(campaign.id, comp.id, trait.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                          <Ionicons name="close-circle" size={16} color={scheme.destructive} />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
-              <TouchableOpacity onPress={() => { setAddingNPCTraitName(''); setAddingNPCTraitCompId(comp.id); }} style={styles.addTraitBtn} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                <Text style={[styles.addTraitText, { color: scheme.primary }]}>+ Add Trait</Text>
-              </TouchableOpacity>
-            </CollapsibleSection>
+            <StandaloneNPC
+              key={comp.id}
+              comp={npcComp}
+              scheme={scheme}
+              collapsed={collapsed[comp.id] ?? true}
+              onToggle={() => toggle(comp.id)}
+              editControls={editControls}
+              onUpdateDescription={(v) => updateCampaignNPCComponent(campaign.id, comp.id, comp.name, v)}
+              onAddTrait={(name) => addCampaignNPCTrait(campaign.id, comp.id, name)}
+              onUpdateTrait={(traitId, name, val) => updateCampaignNPCTrait(campaign.id, comp.id, traitId, name, val)}
+              onRemoveTrait={(traitId) => removeCampaignNPCTrait(campaign.id, comp.id, traitId)}
+            />
           );
         }
 
@@ -430,9 +347,10 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
               {listComp.items.length === 0 && <Text style={[styles.empty, { color: scheme.textMuted }]}>No items yet. Tap + to add.</Text>}
               <View style={{ gap: 8 }}>
                 {listComp.items.map((item, itemIdx) => (
-                  <TextListItemRow
+                  <ExpandableTextRow
                     key={item.id}
-                    item={item}
+                    name={item.name}
+                    content={item.content}
                     scheme={scheme}
                     onUpdate={(name, content) => updateCampaignTextListItem(campaign.id, comp.id, item.id, name, content)}
                     onRemove={() => removeCampaignTextListItem(campaign.id, comp.id, item.id)}
@@ -559,15 +477,6 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
         </TouchableOpacity>
       )}
 
-      {/* ── Number Component Edit Modal ─────────── */}
-      <NumberEditModal
-        visible={editingNumber !== null}
-        title={editingNumber?.name ?? ''}
-        initialValue={editingNumber?.value ?? 0}
-        scheme={scheme}
-        onSave={(n) => { if (editingNumber) updateCampaignComponentNumber(campaign.id, editingNumber.id, n); }}
-        onClose={() => setEditingNumber(null)}
-      />
 
       {/* ── Number List Item Edit Modal ─────────────── */}
       <NumberEditModal
@@ -602,46 +511,13 @@ export default function CampaignSheet({ campaign, isStandalone, schemeOverride }
         </View>
       </ModalOverlay>
 
-      {/* ── NPC Standalone: Add Trait Modal ─────────── */}
-      <ModalOverlay visible={addingNPCTraitCompId !== null} onClose={() => setAddingNPCTraitCompId(null)} scheme={scheme} title="Add Trait">
-        <GlassInput scheme={scheme} label="Trait Name" value={addingNPCTraitName} onChangeText={setAddingNPCTraitName} placeholder="e.g. Strength" containerStyle={{ marginBottom: 20 }} autoFocus />
-        <View style={styles.modalActions}>
-          <GlassButton label="Cancel" onPress={() => { setAddingNPCTraitCompId(null); setAddingNPCTraitName(''); }} scheme={scheme} variant="ghost" small style={{ flex: 1 }} />
-          <GlassButton
-            label="Add"
-            onPress={() => {
-              if (addingNPCTraitCompId && addingNPCTraitName.trim()) {
-                addCampaignNPCTrait(campaign.id, addingNPCTraitCompId, addingNPCTraitName.trim());
-                setAddingNPCTraitCompId(null);
-                setAddingNPCTraitName('');
-              }
-            }}
-            scheme={scheme}
-            variant="primary"
-            small
-            style={{ flex: 1 }}
-            disabled={!addingNPCTraitName.trim()}
-          />
-        </View>
-      </ModalOverlay>
-
-      {/* ── NPC Standalone: Edit Trait Modal ────────── */}
-      {editingNPCTrait && (
-        <NumberEditModal
-          visible={!!editingNPCTrait}
-          title={editingNPCTrait.trait.name}
-          initialValue={editingNPCTrait.trait.value}
-          scheme={scheme}
-          onSave={(value) => {
-            updateCampaignNPCTrait(campaign.id, editingNPCTrait.compId, editingNPCTrait.trait.id, editingNPCTrait.trait.name, value);
-            setEditingNPCTrait(null);
-          }}
-          onClose={() => setEditingNPCTrait(null)}
-        />
-      )}
-
       {/* ── Add Section Modal ───────────────────────── */}
-      {renderAddSectionModal()}
+      <AddSectionModal
+        visible={addingComp}
+        onClose={() => setAddingComp(false)}
+        onAdd={handleAddComp}
+        scheme={scheme}
+      />
     </GlassCard>
   );
 }
@@ -664,20 +540,6 @@ const styles = StyleSheet.create({
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   typeBtn: { width: '30%', flexGrow: 1, borderWidth: 1, borderRadius: 8, paddingVertical: 7, alignItems: 'center' },
   typeBtnText: { fontSize: 12, fontWeight: '600' },
-  // Inline number row
-  inlineNumRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderBottomWidth: 0 },
-  inlineNumTitlePill: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, justifyContent: 'center' },
-  inlineNumTitle: { fontSize: 14, fontWeight: '500' },
-  inlineNumValueBtn: { borderWidth: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16, minWidth: 48, alignItems: 'center', justifyContent: 'center' },
-  inlineNumValue: { fontSize: 16, fontWeight: '700' },
-  // NPC standalone traits
-  npcTraitsContainer: { marginTop: 8, gap: 6 },
-  npcTraitRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  npcTraitName: { flex: 1, fontSize: 13 },
-  npcTraitValueBtn: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, borderWidth: 1, minWidth: 36, alignItems: 'center' },
-  npcTraitValue: { fontSize: 13, fontWeight: '700' },
-  addTraitBtn: { marginTop: 8, alignSelf: 'flex-start' },
-  addTraitText: { fontSize: 12, fontWeight: '600' },
   // Text list items
   textListItem: { marginBottom: 4 },
   textListItemHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },

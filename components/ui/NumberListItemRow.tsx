@@ -12,6 +12,7 @@ interface Props {
   scheme: ColorScheme;
   onUpdateValue: (value: number) => void;
   onRemove: () => void;
+  confirmRemove?: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
 }
@@ -21,6 +22,7 @@ export default function NumberListItemRow({
   scheme,
   onUpdateValue,
   onRemove,
+  confirmRemove,
   onMoveUp,
   onMoveDown,
 }: Props) {
@@ -53,6 +55,7 @@ export default function NumberListItemRow({
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
             onRemove={onRemove}
+            confirmRemove={confirmRemove}
           />
         )}
       </View>
