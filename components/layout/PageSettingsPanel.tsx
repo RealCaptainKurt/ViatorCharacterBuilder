@@ -11,7 +11,7 @@ import { BlurView } from 'expo-blur';
 import { ColorScheme } from '../../constants/colorSchemes';
 import { ColorSchemeId } from '../../types';
 import { useAppStore } from '../../store/appStore';
-import ColorSchemePicker from './ColorSchemePicker';
+import ColorSchemePicker from '../ui/ColorSchemePicker';
 
 interface Props {
   scheme: ColorScheme;

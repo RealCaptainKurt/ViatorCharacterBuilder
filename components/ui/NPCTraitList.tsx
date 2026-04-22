@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
 import { NPCTrait } from '../../types';
@@ -11,7 +11,7 @@ interface Props {
   onRemoveTrait: (traitId: string) => void;
 }
 
-export default function NPCTraitList({ traits, scheme, onUpdateTrait, onRemoveTrait }: Props) {
+function NPCTraitList({ traits, scheme, onUpdateTrait, onRemoveTrait }: Props) {
   const [confirmTraitId, setConfirmTraitId] = useState<string | null>(null);
 
   if (traits.length === 0) return null;
@@ -23,7 +23,7 @@ export default function NPCTraitList({ traits, scheme, onUpdateTrait, onRemoveTr
           <NumberListItemRow
             item={trait}
             scheme={scheme}
-            onUpdateValue={(val) => onUpdateTrait(trait.id, trait.name, val)}
+            onUpdateValue={(val, name) => onUpdateTrait(trait.id, name ?? trait.name, val)}
             onRemove={() => {
               if (confirmTraitId === trait.id) {
                 onRemoveTrait(trait.id);
@@ -49,3 +49,5 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
 });
+
+export default memo(NPCTraitList);

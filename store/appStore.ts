@@ -72,8 +72,6 @@ interface AppState {
 
   // Additional components
   addCharacterComponent: (characterId: string, type: ComponentType, name: string) => void;
-  removeCharacterComponent: (characterId: string, componentId: string) => void;
-  reorderCharacterComponents: (characterId: string, from: number, to: number) => void;
   reorderCharacterSection: (characterId: string, from: number, to: number) => void;
   removeCharacterSection: (characterId: string, sectionId: string) => void;
 
@@ -81,7 +79,7 @@ interface AppState {
   updateCharacterComponentText: (characterId: string, componentId: string, name: string, content: string) => void;
 
   // Number component
-  updateCharacterComponentNumber: (characterId: string, componentId: string, value: number) => void;
+  updateCharacterComponentNumber: (characterId: string, componentId: string, value: number, name: string) => void;
 
   // NPC component (standalone)
   updateCharacterNPCComponent: (characterId: string, componentId: string, name: string, description: string) => void;
@@ -96,13 +94,13 @@ interface AppState {
   reorderCharacterTextListItems: (characterId: string, componentId: string, from: number, to: number) => void;
 
   // Number-list component
-  addCharacterNumberListItem: (characterId: string, componentId: string, name: string) => void;
-  updateCharacterNumberListItemValue: (characterId: string, componentId: string, itemId: string, value: number) => void;
+  addCharacterNumberListItem: (characterId: string, componentId: string, name: string, value?: number) => void;
+  updateCharacterNumberListItemValue: (characterId: string, componentId: string, itemId: string, value: number, name: string) => void;
   removeCharacterNumberListItem: (characterId: string, componentId: string, itemId: string) => void;
   reorderCharacterNumberListItems: (characterId: string, componentId: string, from: number, to: number) => void;
 
   // NPC-list component
-  addCharacterNPCListItem: (characterId: string, componentId: string, name: string, description: string) => void;
+  addCharacterNPCListItem: (characterId: string, componentId: string, name: string, description: string, traits?: NPCTrait[]) => void;
   updateCharacterNPCListItem: (characterId: string, componentId: string, itemId: string, name: string, description: string) => void;
   removeCharacterNPCListItem: (characterId: string, componentId: string, itemId: string) => void;
   reorderCharacterNPCListItems: (characterId: string, componentId: string, from: number, to: number) => void;
@@ -117,7 +115,7 @@ interface AppState {
   updateCampaignField: <K extends keyof Campaign>(id: string, field: K, value: Campaign[K]) => void;
 
   // Built-in NPC list (campaign.npcs — NPCItem[])
-  addCampaignBuiltinNPC: (campaignId: string, name: string, description: string) => void;
+  addCampaignBuiltinNPC: (campaignId: string, name: string, description: string, traits?: NPCTrait[]) => void;
   updateCampaignBuiltinNPC: (campaignId: string, npcId: string, name: string, description: string) => void;
   removeCampaignBuiltinNPC: (campaignId: string, npcId: string) => void;
   reorderCampaignBuiltinNPCs: (campaignId: string, from: number, to: number) => void;
@@ -133,8 +131,6 @@ interface AppState {
 
   // Additional components
   addCampaignComponent: (campaignId: string, type: ComponentType, name: string) => void;
-  removeCampaignComponent: (campaignId: string, componentId: string) => void;
-  reorderCampaignComponents: (campaignId: string, from: number, to: number) => void;
   reorderCampaignSection: (campaignId: string, from: number, to: number) => void;
   removeCampaignSection: (campaignId: string, sectionId: string) => void;
 
@@ -142,7 +138,7 @@ interface AppState {
   updateCampaignComponentText: (campaignId: string, componentId: string, name: string, content: string) => void;
 
   // Number component
-  updateCampaignComponentNumber: (campaignId: string, componentId: string, value: number) => void;
+  updateCampaignComponentNumber: (campaignId: string, componentId: string, value: number, name: string) => void;
 
   // NPC component (standalone)
   updateCampaignNPCComponent: (campaignId: string, componentId: string, name: string, description: string) => void;
@@ -157,17 +153,17 @@ interface AppState {
   reorderCampaignTextListItems: (campaignId: string, componentId: string, from: number, to: number) => void;
 
   // Number-list component
-  addCampaignNumberListItem: (campaignId: string, componentId: string, name: string) => void;
-  updateCampaignNumberListItemValue: (campaignId: string, componentId: string, itemId: string, value: number) => void;
+  addCampaignNumberListItem: (campaignId: string, componentId: string, name: string, value?: number) => void;
+  updateCampaignNumberListItemValue: (campaignId: string, componentId: string, itemId: string, value: number, name: string) => void;
   removeCampaignNumberListItem: (campaignId: string, componentId: string, itemId: string) => void;
   reorderCampaignNumberListItems: (campaignId: string, componentId: string, from: number, to: number) => void;
 
   // NPC-list component
-  addCampaignNPCListItem: (campaignId: string, componentId: string, name: string, description: string) => void;
+  addCampaignNPCListItem: (campaignId: string, componentId: string, name: string, description: string, traits?: NPCTrait[]) => void;
   updateCampaignNPCListItem: (campaignId: string, componentId: string, itemId: string, name: string, description: string) => void;
   removeCampaignNPCListItem: (campaignId: string, componentId: string, itemId: string) => void;
   reorderCampaignNPCListItems: (campaignId: string, componentId: string, from: number, to: number) => void;
-  addCampaignNPCListItemTrait: (campaignId: string, componentId: string, itemId: string, traitName: string) => void;
+  addCampaignNPCListItemTrait: (campaignId: string, componentId: string, itemId: string, traitName: string, traitValue?: number) => void;
   updateCampaignNPCListItemTrait: (campaignId: string, componentId: string, itemId: string, traitId: string, name: string, value: number) => void;
   removeCampaignNPCListItemTrait: (campaignId: string, componentId: string, itemId: string, traitId: string) => void;
 
@@ -221,22 +217,14 @@ function migrateComponents(comps: any[]): AdditionalComponent[] {
 }
 
 // ─── Char component updater helpers ──────────────────────────────────────────
-function updateCharComp<T extends AdditionalComponent>(
+function updateCharComp<TType extends AdditionalComponent['type']>(
   comps: AdditionalComponent[],
   compId: string,
-  type: T['type'],
-  fn: (c: T) => T
+  type: TType,
+  fn: (c: Extract<AdditionalComponent, { type: TType }>) => Extract<AdditionalComponent, { type: TType }>
 ): AdditionalComponent[] {
-  return comps.map((c) => (c.id === compId && c.type === type ? fn(c as T) : c));
-}
-
-function updateCampComp<T extends AdditionalComponent>(
-  comps: AdditionalComponent[],
-  compId: string,
-  type: T['type'],
-  fn: (c: T) => T
-): AdditionalComponent[] {
-  return comps.map((c) => (c.id === compId && c.type === type ? fn(c as T) : c));
+  type C = Extract<AdditionalComponent, { type: TType }>;
+  return comps.map((c) => (c.id === compId && c.type === type ? fn(c as C) : c));
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -444,35 +432,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  removeCharacterComponent: (characterId, componentId) => {
-    set((s) => {
-      const char = s.characters[characterId];
-      if (!char) return s;
-      const updated = {
-        ...char,
-        additionalComponents: char.additionalComponents.filter((c) => c.id !== componentId),
-        sectionOrder: char.sectionOrder ? char.sectionOrder.filter((id) => id !== componentId) : undefined,
-        updatedAt: Date.now(),
-      };
-      persistChar(updated);
-      return { characters: { ...s.characters, [characterId]: updated } };
-    });
-  },
-
-  reorderCharacterComponents: (characterId, from, to) => {
-    set((s) => {
-      const char = s.characters[characterId];
-      if (!char) return s;
-      const updated = {
-        ...char,
-        additionalComponents: reorder(char.additionalComponents, from, to),
-        updatedAt: Date.now(),
-      };
-      persistChar(updated);
-      return { characters: { ...s.characters, [characterId]: updated } };
-    });
-  },
-
   reorderCharacterSection: (characterId, from, to) => {
     set((s) => {
       const char = s.characters[characterId];
@@ -515,13 +474,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // ── Number ──
-  updateCharacterComponentNumber: (characterId, componentId, value) => {
+  updateCharacterComponentNumber: (characterId, componentId, value, name) => {
     set((s) => {
       const char = s.characters[characterId];
       if (!char) return s;
       const updated = {
         ...char,
-        additionalComponents: updateCharComp(char.additionalComponents, componentId, 'number', (c) => ({ ...c, value })),
+        additionalComponents: updateCharComp(char.additionalComponents, componentId, 'number', (c) => ({ ...c, value, name })),
         updatedAt: Date.now(),
       };
       persistChar(updated);
@@ -658,11 +617,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // ── Number-list ──
-  addCharacterNumberListItem: (characterId, componentId, name) => {
+  addCharacterNumberListItem: (characterId, componentId, name, value = 0) => {
     set((s) => {
       const char = s.characters[characterId];
       if (!char) return s;
-      const item: NumberListItem = { id: generateId(), name, value: 0 };
+      const item: NumberListItem = { id: generateId(), name, value };
       const updated = {
         ...char,
         additionalComponents: updateCharComp(char.additionalComponents, componentId, 'number-list', (c) => ({ ...c, items: [...c.items, item] })),
@@ -673,7 +632,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  updateCharacterNumberListItemValue: (characterId, componentId, itemId, value) => {
+  updateCharacterNumberListItemValue: (characterId, componentId, itemId, value, name) => {
     set((s) => {
       const char = s.characters[characterId];
       if (!char) return s;
@@ -681,7 +640,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...char,
         additionalComponents: updateCharComp(char.additionalComponents, componentId, 'number-list', (c) => ({
           ...c,
-          items: c.items.map((i) => (i.id === itemId ? { ...i, value } : i)),
+          items: c.items.map((i) => (i.id === itemId ? { ...i, value, name } : i)),
         })),
         updatedAt: Date.now(),
       };
@@ -722,11 +681,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // ── NPC-list ──
-  addCharacterNPCListItem: (characterId, componentId, name, description) => {
+  addCharacterNPCListItem: (characterId, componentId, name, description, traits = []) => {
     set((s) => {
       const char = s.characters[characterId];
       if (!char) return s;
-      const item: NPCItem = { id: generateId(), name, description, traits: [] };
+      const item: NPCItem = { id: generateId(), name, description, traits };
       const updated = {
         ...char,
         additionalComponents: updateCharComp(char.additionalComponents, componentId, 'npc-list', (c) => ({ ...c, items: [...c.items, item] })),
@@ -887,11 +846,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // ── Built-in NPC list ──
-  addCampaignBuiltinNPC: (campaignId, name, description) => {
+  addCampaignBuiltinNPC: (campaignId, name, description, traits = []) => {
     set((s) => {
       const camp = s.campaigns[campaignId];
       if (!camp) return s;
-      const npc: NPCItem = { id: generateId(), name, description, traits: [] };
+      const npc: NPCItem = { id: generateId(), name, description, traits };
       const updated = { ...camp, npcs: [...camp.npcs, npc], updatedAt: Date.now() };
       persistCamp(updated);
       return { campaigns: { ...s.campaigns, [campaignId]: updated } };
@@ -1048,35 +1007,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  removeCampaignComponent: (campaignId, componentId) => {
-    set((s) => {
-      const camp = s.campaigns[campaignId];
-      if (!camp) return s;
-      const updated = {
-        ...camp,
-        additionalComponents: camp.additionalComponents.filter((c) => c.id !== componentId),
-        sectionOrder: camp.sectionOrder ? camp.sectionOrder.filter((id) => id !== componentId) : undefined,
-        updatedAt: Date.now(),
-      };
-      persistCamp(updated);
-      return { campaigns: { ...s.campaigns, [campaignId]: updated } };
-    });
-  },
-
-  reorderCampaignComponents: (campaignId, from, to) => {
-    set((s) => {
-      const camp = s.campaigns[campaignId];
-      if (!camp) return s;
-      const updated = {
-        ...camp,
-        additionalComponents: reorder(camp.additionalComponents, from, to),
-        updatedAt: Date.now(),
-      };
-      persistCamp(updated);
-      return { campaigns: { ...s.campaigns, [campaignId]: updated } };
-    });
-  },
-
   reorderCampaignSection: (campaignId, from, to) => {
     set((s) => {
       const camp = s.campaigns[campaignId];
@@ -1110,7 +1040,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'text', (c) => ({ ...c, name, content })),
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'text', (c) => ({ ...c, name, content })),
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -1119,13 +1049,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // ── Number ──
-  updateCampaignComponentNumber: (campaignId, componentId, value) => {
+  updateCampaignComponentNumber: (campaignId, componentId, value, name) => {
     set((s) => {
       const camp = s.campaigns[campaignId];
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'number', (c) => ({ ...c, value })),
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'number', (c) => ({ ...c, value, name })),
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -1140,7 +1070,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc', (c) => ({ ...c, name, description })),
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc', (c) => ({ ...c, name, description })),
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -1155,7 +1085,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const trait: NPCTrait = { id: generateId(), name: traitName, value: traitValue };
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc', (c) => ({ ...c, traits: [...c.traits, trait] })),
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc', (c) => ({ ...c, traits: [...c.traits, trait] })),
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -1169,7 +1099,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc', (c) => ({
           ...c,
           traits: c.traits.map((t) => (t.id === traitId ? { ...t, name, value } : t)),
         })),
@@ -1186,7 +1116,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc', (c) => ({
           ...c,
           traits: c.traits.filter((t) => t.id !== traitId),
         })),
@@ -1205,7 +1135,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const item: TextListItem = { id: generateId(), name, content };
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'text-list', (c) => ({ ...c, items: [...c.items, item] })),
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'text-list', (c) => ({ ...c, items: [...c.items, item] })),
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -1219,7 +1149,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'text-list', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'text-list', (c) => ({
           ...c,
           items: c.items.map((i) => (i.id === itemId ? { ...i, name, content } : i)),
         })),
@@ -1236,7 +1166,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'text-list', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'text-list', (c) => ({
           ...c,
           items: c.items.filter((i) => i.id !== itemId),
         })),
@@ -1253,7 +1183,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'text-list', (c) => ({ ...c, items: reorder(c.items, from, to) })),
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'text-list', (c) => ({ ...c, items: reorder(c.items, from, to) })),
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -1262,14 +1192,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // ── Number-list ──
-  addCampaignNumberListItem: (campaignId, componentId, name) => {
+  addCampaignNumberListItem: (campaignId, componentId, name, value = 0) => {
     set((s) => {
       const camp = s.campaigns[campaignId];
       if (!camp) return s;
-      const item: NumberListItem = { id: generateId(), name, value: 0 };
+      const item: NumberListItem = { id: generateId(), name, value };
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'number-list', (c) => ({ ...c, items: [...c.items, item] })),
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'number-list', (c) => ({ ...c, items: [...c.items, item] })),
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -1277,15 +1207,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  updateCampaignNumberListItemValue: (campaignId, componentId, itemId, value) => {
+  updateCampaignNumberListItemValue: (campaignId, componentId, itemId, value, name) => {
     set((s) => {
       const camp = s.campaigns[campaignId];
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'number-list', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'number-list', (c) => ({
           ...c,
-          items: c.items.map((i) => (i.id === itemId ? { ...i, value } : i)),
+          items: c.items.map((i) => (i.id === itemId ? { ...i, value, name } : i)),
         })),
         updatedAt: Date.now(),
       };
@@ -1300,7 +1230,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'number-list', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'number-list', (c) => ({
           ...c,
           items: c.items.filter((i) => i.id !== itemId),
         })),
@@ -1317,7 +1247,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'number-list', (c) => ({ ...c, items: reorder(c.items, from, to) })),
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'number-list', (c) => ({ ...c, items: reorder(c.items, from, to) })),
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -1326,14 +1256,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // ── NPC-list ──
-  addCampaignNPCListItem: (campaignId, componentId, name, description) => {
+  addCampaignNPCListItem: (campaignId, componentId, name, description, traits = []) => {
     set((s) => {
       const camp = s.campaigns[campaignId];
       if (!camp) return s;
-      const item: NPCItem = { id: generateId(), name, description, traits: [] };
+      const item: NPCItem = { id: generateId(), name, description, traits };
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({ ...c, items: [...c.items, item] })),
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({ ...c, items: [...c.items, item] })),
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -1347,7 +1277,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({
           ...c,
           items: c.items.map((i) => (i.id === itemId ? { ...i, name, description } : i)),
         })),
@@ -1364,7 +1294,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({
           ...c,
           items: c.items.filter((i) => i.id !== itemId),
         })),
@@ -1381,7 +1311,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({ ...c, items: reorder(c.items, from, to) })),
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({ ...c, items: reorder(c.items, from, to) })),
         updatedAt: Date.now(),
       };
       persistCamp(updated);
@@ -1389,14 +1319,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  addCampaignNPCListItemTrait: (campaignId, componentId, itemId, traitName) => {
+  addCampaignNPCListItemTrait: (campaignId, componentId, itemId, traitName, traitValue = 0) => {
     set((s) => {
       const camp = s.campaigns[campaignId];
       if (!camp) return s;
-      const trait: NPCTrait = { id: generateId(), name: traitName, value: 0 };
+      const trait: NPCTrait = { id: generateId(), name: traitName, value: traitValue };
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({
           ...c,
           items: c.items.map((i) => (i.id === itemId ? { ...i, traits: [...i.traits, trait] } : i)),
         })),
@@ -1413,7 +1343,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({
           ...c,
           items: c.items.map((i) =>
             i.id === itemId
@@ -1434,7 +1364,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!camp) return s;
       const updated = {
         ...camp,
-        additionalComponents: updateCampComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({
+        additionalComponents: updateCharComp(camp.additionalComponents, componentId, 'npc-list', (c) => ({
           ...c,
           items: c.items.map((i) =>
             i.id === itemId ? { ...i, traits: i.traits.filter((t) => t.id !== traitId) } : i

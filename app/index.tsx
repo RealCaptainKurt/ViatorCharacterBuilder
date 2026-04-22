@@ -15,13 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAppStore } from '../store/appStore';
 import { COLOR_SCHEMES, DEFAULT_SCHEME } from '../constants/colorSchemes';
-import CharacterSheet from '../components/character/CharacterSheet';
-import CampaignSheet from '../components/campaign/CampaignSheet';
-import Sidebar from '../components/ui/Sidebar';
+import CharacterSheet from '../components/sheets/CharacterSheet';
+import CampaignSheet from '../components/sheets/CampaignSheet';
+import Sidebar from '../components/layout/Sidebar';
 import DiceModal from '../components/modals/DiceModal';
 import OracleModal from '../components/modals/OracleModal';
-import PageSettingsPanel from '../components/ui/PageSettingsPanel';
-import FloatingToolbar from '../components/ui/FloatingToolbar';
+import PageSettingsPanel from '../components/layout/PageSettingsPanel';
+import FloatingToolbar from '../components/layout/FloatingToolbar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.2;
@@ -177,12 +177,12 @@ export default function MainScreen() {
             )}
 
             {/* Character sheet */}
-            {activeChar && <CharacterSheet character={activeChar} />}
+            {activeCharacterId && <CharacterSheet characterId={activeCharacterId} />}
 
             {/* Campaign sheet — seamless below character if linked */}
             {activeCamp && (
               <CampaignSheet
-                campaign={activeCamp}
+                campaignId={activeCampaignId ?? activeChar?.campaignId ?? ''}
                 isStandalone={!campaignIsLinked}
                 schemeOverride={campaignSchemeOverride}
               />

@@ -1,29 +1,30 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import {
-  View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
 } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
-import GlassButton from './GlassButton';
-import ModalOverlay from './ModalOverlay';
+import TextEditModal from '../modals/TextEditModal';
 
 interface Props {
   content: string;
   scheme: ColorScheme;
   placeholder?: string;
   title?: string;
-  onSave: (content: string) => void;
+  allowNameEdit?: boolean;
+  initialName?: string;
+  onSave: (content: string, name?: string) => void;
 }
 
-export default function TextContentRow({
+function TextContentRow({
   content,
   scheme,
   placeholder = 'Tap to edit...',
   title,
+  allowNameEdit = false,
+  initialName = '',
   onSave,
 }: Props) {
   const [editing, setEditing] = useState(false);
@@ -32,11 +33,6 @@ export default function TextContentRow({
   const openEdit = () => {
     setDraft(content);
     setEditing(true);
-  };
-
-  const handleSave = () => {
-    onSave(draft);
-    setEditing(false);
   };
 
   return (
@@ -52,50 +48,20 @@ export default function TextContentRow({
         <Feather name="edit-2" size={14} color={scheme.textMuted} style={{ paddingTop: 2 }} />
       </TouchableOpacity>
 
-      <ModalOverlay
+      <TextEditModal
         visible={editing}
-        onClose={() => setEditing(false)}
         scheme={scheme}
-        title={title}
-        maxWidth={460}
-      >
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          multiline
-          autoFocus
-          textAlignVertical="top"
-          style={[
-            styles.input,
-            {
-              color: scheme.text,
-              borderColor: scheme.surfaceBorder,
-              backgroundColor: scheme.primaryMuted,
-            },
-          ]}
-          placeholder={placeholder}
-          placeholderTextColor={scheme.textMuted}
-          selectionColor={scheme.primary}
-        />
-        <View style={styles.actions}>
-          <GlassButton
-            label="Cancel"
-            onPress={() => setEditing(false)}
-            scheme={scheme}
-            variant="ghost"
-            small
-            style={{ flex: 1 }}
-          />
-          <GlassButton
-            label="Save"
-            onPress={handleSave}
-            scheme={scheme}
-            variant="primary"
-            small
-            style={{ flex: 1 }}
-          />
-        </View>
-      </ModalOverlay>
+        title={title ? `Edit ${title}` : 'Edit Content'}
+        initialName={initialName}
+        initialDesc={draft}
+        showNameInput={allowNameEdit}
+        descPlaceholder={placeholder}
+        onConfirm={(name, desc) => {
+          onSave(desc, allowNameEdit ? name : undefined);
+          setEditing(false);
+        }}
+        onCancel={() => setEditing(false)}
+      />
     </>
   );
 }
@@ -135,3 +101,5 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 });
+
+export default memo(TextContentRow);

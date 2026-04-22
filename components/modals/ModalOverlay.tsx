@@ -10,7 +10,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
-import GlassCard from './GlassCard';
+import GlassCard from '../ui/GlassCard';
 
 interface Props {
   visible: boolean;

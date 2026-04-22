@@ -1,17 +1,14 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
   StyleSheet,
 } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
 import { useAppStore } from '../../store/appStore';
-import GlassInput from './GlassInput';
-import GlassButton from './GlassButton';
-import ModalOverlay from './ModalOverlay';
+import TextEditModal from '../modals/TextEditModal';
 import EditControls from './EditControls';
 
 interface Props {
@@ -26,7 +23,7 @@ interface Props {
   placeholder?: string;
 }
 
-export default function ExpandableTextRow({
+function ExpandableTextRow({
   name,
   content,
   scheme,
@@ -103,57 +100,17 @@ export default function ExpandableTextRow({
         )}
       </View>
 
-      <ModalOverlay
+      <TextEditModal
         visible={editing}
-        onClose={() => setEditing(false)}
         scheme={scheme}
-        maxWidth={460}
-      >
-        <GlassInput
-          scheme={scheme}
-          label="Name"
-          value={editName}
-          onChangeText={setEditName}
-          containerStyle={{ marginBottom: 12 }}
-        />
-        <GlassInput
-          scheme={scheme}
-          label="Content"
-          value={editContent}
-          onChangeText={setEditContent}
-          multiline
-          minHeight={80}
-          placeholder={placeholder}
-          containerStyle={{ marginBottom: 20 }}
-        />
-        <View style={styles.actions}>
-          <GlassButton
-            label="Remove"
-            onPress={() => { setEditing(false); setTimeout(onRemove, 200); }}
-            scheme={scheme}
-            variant="destructive"
-            small
-            style={{ flex: 1 }}
-          />
-          <GlassButton
-            label="Cancel"
-            onPress={() => setEditing(false)}
-            scheme={scheme}
-            variant="ghost"
-            small
-            style={{ flex: 1 }}
-          />
-          <GlassButton
-            label="Save"
-            onPress={handleSave}
-            scheme={scheme}
-            variant="primary"
-            small
-            style={{ flex: 1 }}
-            disabled={!editName.trim()}
-          />
-        </View>
-      </ModalOverlay>
+        title={`Edit ${name}`}
+        initialName={editName}
+        initialDesc={editContent}
+        namePlaceholder="Name"
+        descPlaceholder={placeholder}
+        onConfirm={handleSave}
+        onCancel={() => setEditing(false)}
+      />
     </>
   );
 }
@@ -203,3 +160,5 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 });
+
+export default memo(ExpandableTextRow);
