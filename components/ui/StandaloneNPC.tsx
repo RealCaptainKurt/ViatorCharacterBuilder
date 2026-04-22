@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { memo, useState } from 'react';
+import { Feather } from '@expo/vector-icons';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
-import { AdditionalNPCComponent, NPCTrait } from '../../types';
+import { AdditionalNPCComponent } from '../../types';
 import CollapsibleSection from './CollapsibleSection';
-import TextContentRow from './TextContentRow';
+import NPCEditModal from '../modals/NPCEditModal';
 import NPCTraitList from './NPCTraitList';
-import ModalOverlay from './ModalOverlay';
-import GlassInput from './GlassInput';
-import GlassButton from './GlassButton';
 
 interface Props {
   comp: AdditionalNPCComponent;
@@ -15,37 +13,25 @@ interface Props {
   collapsed: boolean;
   onToggle: () => void;
   editControls?: React.ReactNode;
-  onUpdateDescription: (desc: string) => void;
+  /** Called when the user saves name + description changes */
+  onUpdate: (name: string, desc: string) => void;
   onAddTrait: (name: string) => void;
   onUpdateTrait: (traitId: string, name: string, value: number) => void;
   onRemoveTrait: (traitId: string) => void;
 }
 
-export default function StandaloneNPC({
+function StandaloneNPC({
   comp,
   scheme,
   collapsed,
   onToggle,
   editControls,
-  onUpdateDescription,
+  onUpdate,
   onAddTrait,
   onUpdateTrait,
   onRemoveTrait,
 }: Props) {
-  const [addingTrait, setAddingTrait] = useState(false);
-  const [newTraitName, setNewTraitName] = useState('');
-
-  const handleAddTrait = () => {
-    if (!newTraitName.trim()) return;
-    onAddTrait(newTraitName.trim());
-    setNewTraitName('');
-    setAddingTrait(false);
-  };
-
-  const closeAddingTrait = () => {
-    setNewTraitName('');
-    setAddingTrait(false);
-  };
+  const [editing, setEditing] = useState(false);
 
   return (
     <>
@@ -56,52 +42,80 @@ export default function StandaloneNPC({
         onToggle={onToggle}
         rightContent={editControls}
       >
-        <TextContentRow
-          content={comp.description}
-          scheme={scheme}
-          placeholder="Tap to add description..."
-          title={comp.name}
-          onSave={onUpdateDescription}
-        />
-        
-        <NPCTraitList
-          traits={comp.traits}
-          scheme={scheme}
-          onUpdateTrait={onUpdateTrait}
-          onRemoveTrait={onRemoveTrait}
-        />
+        {/* Description row with edit icon */}
+        <View style={styles.descRow}>
+          <Text
+            style={[
+              styles.desc,
+              {
+                flex: 1,
+                color: comp.description ? scheme.textSecondary : scheme.textMuted,
+                fontStyle: comp.description ? 'normal' : 'italic',
+              },
+            ]}
+          >
+            {comp.description || 'No description — tap to edit.'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => setEditing(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.editIcon}
+          >
+            <Feather name="edit-2" size={13} color={scheme.textMuted} />
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity onPress={() => setAddingTrait(true)} style={styles.addTraitBtn} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-          <Text style={[styles.addTraitText, { color: scheme.primary }]}>+ Add Trait</Text>
-        </TouchableOpacity>
+        {/* Traits */}
+        {comp.traits.length > 0 && (
+          <>
+            <View style={[styles.divider, { backgroundColor: scheme.surfaceBorder }]} />
+            <NPCTraitList
+              traits={comp.traits}
+              scheme={scheme}
+              onUpdateTrait={onUpdateTrait}
+              onRemoveTrait={onRemoveTrait}
+            />
+          </>
+        )}
       </CollapsibleSection>
 
-      <ModalOverlay visible={addingTrait} onClose={closeAddingTrait} scheme={scheme} title="Add Trait">
-        <GlassInput scheme={scheme} label="Trait Name" value={newTraitName} onChangeText={setNewTraitName} autoFocus />
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-          <GlassButton label="Cancel" onPress={closeAddingTrait} scheme={scheme} variant="ghost" small style={{ flex: 1 }} />
-          <GlassButton
-            label="Add"
-            onPress={handleAddTrait}
-            scheme={scheme}
-            variant="primary"
-            small
-            style={{ flex: 1 }}
-            disabled={!newTraitName.trim()}
-          />
-        </View>
-      </ModalOverlay>
+      {/* Unified edit modal */}
+      <NPCEditModal
+        visible={editing}
+        scheme={scheme}
+        title={`Edit ${comp.name}`}
+        initialName={comp.name}
+        initialDesc={comp.description}
+        traits={comp.traits}
+        showNameInput={true}
+        onConfirm={(name, desc) => { onUpdate(name, desc); setEditing(false); }}
+        onCancel={() => setEditing(false)}
+        onAddTrait={onAddTrait}
+        onUpdateTrait={onUpdateTrait}
+        onRemoveTrait={onRemoveTrait}
+      />
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  addTraitBtn: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
+  descRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    paddingVertical: 4,
   },
-  addTraitText: {
+  desc: {
     fontSize: 13,
-    fontWeight: '600',
+    lineHeight: 18,
+  },
+  editIcon: {
+    paddingTop: 2,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 8,
   },
 });
+
+export default memo(StandaloneNPC);

@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
 import { NumberListItem } from '../../types';
 import { useAppStore } from '../../store/appStore';
-import NumberEditModal from './NumberEditModal';
+import NumberEditModal from '../modals/NumberEditModal';
 import EditControls from './EditControls';
 
 interface Props {
   item: NumberListItem;
   scheme: ColorScheme;
-  onUpdateValue: (value: number) => void;
+  onUpdateValue: (value: number, name?: string) => void;
   onRemove: () => void;
   confirmRemove?: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
 }
 
-export default function NumberListItemRow({
+function NumberListItemRow({
   item,
   scheme,
   onUpdateValue,
@@ -64,8 +64,10 @@ export default function NumberListItemRow({
         visible={editing}
         title={item.name}
         initialValue={item.value}
+        initialName={item.name}
+        allowNameEdit={true}
         scheme={scheme}
-        onSave={(n) => { onUpdateValue(n); setEditing(false); }}
+        onSave={(n, name) => { onUpdateValue(n, name); setEditing(false); }}
         onClose={() => setEditing(false)}
       />
     </>
@@ -104,3 +106,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+export default memo(NumberListItemRow);

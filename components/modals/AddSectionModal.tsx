@@ -11,8 +11,8 @@ import {
   Platform,
 } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
-import GlassCard from './GlassCard';
-import GlassButton from './GlassButton';
+import GlassCard from '../ui/GlassCard';
+import GlassButton from '../ui/GlassButton';
 
 export type ComponentType = 'text' | 'number' | 'npc' | 'text-list' | 'number-list' | 'npc-list';
 

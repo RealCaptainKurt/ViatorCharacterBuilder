@@ -1,21 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Feather, Ionicons } from '@expo/vector-icons';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import React, { memo, useState } from 'react';
+import { Feather } from '@expo/vector-icons';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ColorScheme } from '../../constants/colorSchemes';
-import { NPCItem, NPCTrait } from '../../types';
+import { NPCItem } from '../../types';
 import { useAppStore } from '../../store/appStore';
-import GlassInput from './GlassInput';
-import GlassButton from './GlassButton';
-import ModalOverlay from './ModalOverlay';
-import NumberEditModal from './NumberEditModal';
 import EditControls from './EditControls';
+import NPCEditModal from '../modals/NPCEditModal';
 import NPCTraitList from './NPCTraitList';
 
 interface Props {
@@ -30,7 +20,7 @@ interface Props {
   onMoveDown?: () => void;
 }
 
-export default function NPCRow({
+function NPCRow({
   item,
   scheme,
   onUpdate,
@@ -44,52 +34,14 @@ export default function NPCRow({
   const { isEditMode } = useAppStore();
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(item.name);
-  const [editDesc, setEditDesc] = useState(item.description);
-
-  // New trait being added inside the edit modal
-  const [newTraitName, setNewTraitName] = useState('');
-
-  // Sync local edit state when the item changes (e.g. after trait add/remove)
-  useEffect(() => {
-    if (editing) {
-      setEditName(item.name);
-      setEditDesc(item.description);
-    }
-  }, [item.name, item.description]);
-
-  const handleSave = () => {
-    if (!editName.trim()) return;
-    onUpdate(editName.trim(), editDesc.trim());
-    setEditing(false);
-    setNewTraitName('');
-  };
-
-  const openEdit = () => {
-    setEditName(item.name);
-    setEditDesc(item.description);
-    setNewTraitName('');
-    setEditing(true);
-  };
-
-  const closeEdit = () => {
-    setEditing(false);
-    setNewTraitName('');
-  };
-
-  const handleAddTraitInModal = () => {
-    if (!newTraitName.trim()) return;
-    onAddTrait(newTraitName.trim());
-    setNewTraitName('');
-  };
 
   return (
     <>
-      {/* NPC container with border for visual distinction */}
+      {/* NPC card */}
       <View style={[styles.npcContainer, { borderColor: scheme.surfaceBorder }]}>
         <TouchableOpacity
           onPress={() => setExpanded((v) => !v)}
-          onLongPress={openEdit}
+          onLongPress={() => setEditing(true)}
           activeOpacity={0.75}
           style={styles.headerRow}
         >
@@ -99,7 +51,7 @@ export default function NPCRow({
           <View style={styles.headerContent}>
             <Text style={[styles.name, { color: scheme.text }]}>{item.name}</Text>
           </View>
-          
+
           {isEditMode && (
             <EditControls
               scheme={scheme}
@@ -114,19 +66,28 @@ export default function NPCRow({
           <View style={styles.expandedBody}>
             {/* Description + edit icon */}
             <View style={styles.descRow}>
-              <Text style={[
-                styles.desc,
-                { flex: 1, color: item.description ? scheme.textSecondary : scheme.textMuted,
-                  fontStyle: item.description ? 'normal' : 'italic' },
-              ]}>
+              <Text
+                style={[
+                  styles.desc,
+                  {
+                    flex: 1,
+                    color: item.description ? scheme.textSecondary : scheme.textMuted,
+                    fontStyle: item.description ? 'normal' : 'italic',
+                  },
+                ]}
+              >
                 {item.description || 'No description — tap to edit.'}
               </Text>
-              <TouchableOpacity onPress={openEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.descEditBtn}>
+              <TouchableOpacity
+                onPress={() => setEditing(true)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.descEditBtn}
+              >
                 <Feather name="edit-2" size={13} color={scheme.textMuted} />
               </TouchableOpacity>
             </View>
 
-            {/* Traits section with divider */}
+            {/* Traits */}
             {item.traits.length > 0 && (
               <>
                 <View style={[styles.sectionDivider, { backgroundColor: scheme.surfaceBorder }]} />
@@ -142,80 +103,21 @@ export default function NPCRow({
         )}
       </View>
 
-      {/* ── NPC Edit Modal ──────────────────────────── */}
-      <ModalOverlay
+      {/* Edit modal */}
+      <NPCEditModal
         visible={editing}
-        onClose={closeEdit}
         scheme={scheme}
-        maxWidth={460}
-      >
-        <ScrollView
-          style={styles.modalScroll}
-          contentContainerStyle={styles.modalScrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Name + Description */}
-          <GlassInput
-            scheme={scheme}
-            label="Name"
-            value={editName}
-            onChangeText={setEditName}
-            containerStyle={{ marginBottom: 12 }}
-          />
-          <GlassInput
-            scheme={scheme}
-            label="Description"
-            value={editDesc}
-            onChangeText={setEditDesc}
-            multiline
-            minHeight={80}
-            containerStyle={{ marginBottom: 16 }}
-          />
-
-          {/* Traits Section */}
-          <View style={[styles.modalDivider, { backgroundColor: scheme.surfaceBorder }]} />
-          <Text style={[styles.modalSectionLabel, { color: scheme.textSecondary }]}>TRAITS</Text>
-
-          <NPCTraitList
-            traits={item.traits}
-            scheme={scheme}
-            onUpdateTrait={onUpdateTrait}
-            onRemoveTrait={onRemoveTrait}
-          />
-
-          {/* Add Trait inline */}
-          <View style={styles.addTraitRow}>
-            <TextInput
-              value={newTraitName}
-              onChangeText={setNewTraitName}
-              placeholder="New trait name..."
-              placeholderTextColor={scheme.textMuted}
-              style={[styles.addTraitInput, { color: scheme.text, borderColor: scheme.surfaceBorder, backgroundColor: scheme.surface }]}
-              onSubmitEditing={handleAddTraitInModal}
-              returnKeyType="done"
-            />
-            <TouchableOpacity
-              onPress={handleAddTraitInModal}
-              disabled={!newTraitName.trim()}
-              style={[
-                styles.addTraitConfirmBtn,
-                { backgroundColor: newTraitName.trim() ? scheme.primary : scheme.surfaceBorder },
-              ]}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              <Ionicons name="add" size={18} color={newTraitName.trim() ? '#fff' : scheme.textMuted} />
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-
-        {/* Action Buttons */}
-        <View style={styles.actions}>
-          <GlassButton label="Cancel" onPress={closeEdit} scheme={scheme} variant="ghost" small style={{ flex: 1 }} />
-          <GlassButton label="Save" onPress={handleSave} scheme={scheme} variant="primary" small style={{ flex: 1 }} disabled={!editName.trim()} />
-        </View>
-      </ModalOverlay>
-
+        title={`Edit ${item.name}`}
+        initialName={item.name}
+        initialDesc={item.description}
+        traits={item.traits}
+        showNameInput={true}
+        onConfirm={(name, desc) => { onUpdate(name, desc); setEditing(false); }}
+        onCancel={() => setEditing(false)}
+        onAddTrait={onAddTrait}
+        onUpdateTrait={onUpdateTrait}
+        onRemoveTrait={onRemoveTrait}
+      />
     </>
   );
 }
@@ -246,10 +148,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  descPreview: {
-    fontSize: 12,
-    marginTop: 1,
-  },
   expandedBody: {
     paddingHorizontal: 14,
     paddingBottom: 8,
@@ -271,116 +169,6 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     marginVertical: 8,
   },
-  traitsContainer: {
-    gap: 6,
-  },
-  traitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  traitName: {
-    flex: 1,
-    fontSize: 13,
-  },
-  traitActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  traitValueBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    minWidth: 36,
-    alignItems: 'center',
-  },
-  traitValue: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  moveButtons: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 2,
-  },
-  moveArrow: {
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 16,
-  },
-  // ── Edit Modal Styles ──
-  modalScroll: {
-    maxHeight: 400,
-  },
-  modalScrollContent: {
-    paddingBottom: 4,
-  },
-  modalDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginBottom: 10,
-  },
-  modalSectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-  modalTraitsList: {
-    gap: 6,
-    marginBottom: 8,
-  },
-  modalTraitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderWidth: 1,
-    borderRadius: 8,
-  },
-  modalTraitName: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  modalTraitValueBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    minWidth: 40,
-    alignItems: 'center',
-  },
-  modalTraitValue: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  addTraitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  addTraitInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    fontSize: 13,
-  },
-  addTraitConfirmBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
 });
+
+export default memo(NPCRow);
