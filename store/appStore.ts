@@ -1,28 +1,27 @@
 import { create } from 'zustand';
+import { DEFAULT_SCHEME } from '../constants/colorSchemes';
 import {
-  Character,
+  AdditionalComponent,
   Campaign,
+  Character,
   ColorSchemeId,
   NamedItem,
-  AdditionalComponent,
-  AdditionalNumberComponent,
-  NPCTrait,
   NPCItem,
-  TextListItem,
+  NPCTrait,
   NumberListItem,
+  TextListItem,
 } from '../types';
-import {
-  loadCharacters,
-  saveCharacter,
-  deleteCharacter,
-  loadCampaigns,
-  saveCampaign,
-  deleteCampaign,
-  loadActiveEntry,
-  saveActiveEntry,
-} from '../utils/storage';
 import { generateId } from '../utils/id';
-import { DEFAULT_SCHEME } from '../constants/colorSchemes';
+import {
+  deleteCampaign,
+  deleteCharacter,
+  loadActiveEntry,
+  loadCampaigns,
+  loadCharacters,
+  saveActiveEntry,
+  saveCampaign,
+  saveCharacter,
+} from '../utils/storage';
 
 type ComponentType = 'text' | 'number' | 'npc' | 'text-list' | 'number-list' | 'npc-list';
 

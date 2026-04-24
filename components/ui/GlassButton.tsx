@@ -85,6 +85,7 @@ export default function GlassButton({
         tint={scheme.blurTint}
         style={[StyleSheet.absoluteFillObject, { borderRadius }]}
       />
+      <View style={styles.topHighlight} pointerEvents="none" />
       {loading ? (
         <ActivityIndicator size="small" color={color} />
       ) : (
@@ -109,6 +110,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  topHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
   },
   small: {
     paddingVertical: 7,

@@ -20,7 +20,6 @@ import CampaignSheet from '../components/sheets/CampaignSheet';
 import Sidebar from '../components/layout/Sidebar';
 import DiceModal from '../components/modals/DiceModal';
 import OracleModal from '../components/modals/OracleModal';
-import PageSettingsPanel from '../components/layout/PageSettingsPanel';
 import FloatingToolbar from '../components/layout/FloatingToolbar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -35,13 +34,13 @@ export default function MainScreen() {
     activeCampaignId,
     isSidebarOpen,
     isEditMode,
+    toggleEditMode,
     openSidebar,
     closeSidebar,
   } = useAppStore();
 
   const [showDice, setShowDice] = useState(false);
   const [showOracle, setShowOracle] = useState(false);
-  const [showPageSettings, setShowPageSettings] = useState(false);
 
   // Derive active data
   const activeChar = activeCharacterId ? characters[activeCharacterId] : null;
@@ -119,11 +118,15 @@ export default function MainScreen() {
 
           {hasContent && (
             <TouchableOpacity
-              onPress={() => setShowPageSettings((v) => !v)}
+              onPress={toggleEditMode}
               style={styles.settingsBtn}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="settings-outline" size={22} color={scheme.textSecondary} />
+              <Ionicons
+                name={isEditMode ? 'settings' : 'settings-outline'}
+                size={22}
+                color={isEditMode ? scheme.primary : scheme.textSecondary}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -210,16 +213,6 @@ export default function MainScreen() {
           scheme={scheme}
           onDicePress={() => setShowDice(true)}
           onOraclePress={() => setShowOracle(true)}
-        />
-      )}
-
-      {/* ── Page Settings Dropdown ─────────────────── */}
-      {showPageSettings && (
-        <PageSettingsPanel
-          scheme={scheme}
-          onDismiss={() => setShowPageSettings(false)}
-          activeCharacterId={activeCharacterId}
-          activeCampaignId={activeCampaignId ?? activeChar?.campaignId ?? null}
         />
       )}
 

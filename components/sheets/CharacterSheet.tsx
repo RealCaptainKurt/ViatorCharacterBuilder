@@ -16,6 +16,7 @@ import GlassButton from '../ui/GlassButton';
 import GlassInput from '../ui/GlassInput';
 import TextContentRow from '../ui/TextContentRow';
 import ModalOverlay from '../modals/ModalOverlay';
+import ColorSchemeModal from '../modals/ColorSchemeModal';
 import NumberEditModal from '../modals/NumberEditModal';
 import NPCEditModal from '../modals/NPCEditModal';
 import NPCRow from '../ui/NPCRow';
@@ -46,10 +47,17 @@ const CharacterNameHeader = memo(function CharacterNameHeader({
 }) {
   const name = useAppStore((s) => s.characters[characterId]?.name ?? '');
   const xp = useAppStore((s) => s.characters[characterId]?.xp ?? 0);
+  const colorScheme = useAppStore((s) => s.characters[characterId]?.colorScheme);
+  const campaignId = useAppStore((s) => s.characters[characterId]?.campaignId ?? null);
+  const isEditMode = useAppStore((s) => s.isEditMode);
   const updateCharacterField = useAppStore((s) => s.updateCharacterField);
+  const updateCampaignField = useAppStore((s) => s.updateCampaignField);
+  const removeCharacter = useAppStore((s) => s.removeCharacter);
 
   const [showXpModal, setShowXpModal] = useState(false);
   const [draftXp, setDraftXp] = useState('0');
+  const [showColorModal, setShowColorModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const openXpModal = () => { setDraftXp(String(xp)); setShowXpModal(true); };
   const adjustXp = (delta: number) => {
@@ -62,9 +70,29 @@ const CharacterNameHeader = memo(function CharacterNameHeader({
     setShowXpModal(false);
   };
 
+  const handleColorChange = (id: ColorSchemeId) => {
+    updateCharacterField(characterId, 'colorScheme', id);
+    if (campaignId) updateCampaignField(campaignId, 'colorScheme', id);
+  };
+
+  const handleDelete = () => {
+    if (confirmDelete) {
+      removeCharacter(characterId);
+    } else {
+      setConfirmDelete(true);
+    }
+  };
+
   return (
     <>
       <View style={styles.nameRow}>
+        {isEditMode && colorScheme && (
+          <TouchableOpacity
+            onPress={() => setShowColorModal(true)}
+            activeOpacity={0.8}
+            style={[styles.colorBtn, { backgroundColor: scheme.primary, borderColor: scheme.surfaceBorder }]}
+          />
+        )}
         <TextInput
           value={name}
           onChangeText={(v) => updateCharacterField(characterId, 'name', v)}
@@ -79,6 +107,15 @@ const CharacterNameHeader = memo(function CharacterNameHeader({
             <Text style={[styles.xpValue, { color: scheme.primary }]}>{xp}</Text>
           </View>
         </TouchableOpacity>
+        {isEditMode && (
+          <GlassButton
+            label={confirmDelete ? 'Confirm?' : 'Delete'}
+            onPress={handleDelete}
+            scheme={scheme}
+            variant={confirmDelete ? 'destructive' : 'ghost'}
+            small
+          />
+        )}
       </View>
 
       <ModalOverlay visible={showXpModal} onClose={() => setShowXpModal(false)} scheme={scheme} title="Experience Points">
@@ -104,6 +141,16 @@ const CharacterNameHeader = memo(function CharacterNameHeader({
           <GlassButton label="Save" onPress={handleXpSave} scheme={scheme} variant="primary" small style={{ flex: 1 }} />
         </View>
       </ModalOverlay>
+
+      {colorScheme && (
+        <ColorSchemeModal
+          visible={showColorModal}
+          onClose={() => setShowColorModal(false)}
+          current={colorScheme}
+          onChange={handleColorChange}
+          scheme={scheme}
+        />
+      )}
     </>
   );
 });
@@ -606,7 +653,8 @@ export default function CharacterSheet({ characterId }: Props) {
 
 const styles = StyleSheet.create({
   card: { marginBottom: 12 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  colorBtn: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, flexShrink: 0 },
   nameInput: { flex: 1, minWidth: 0, fontSize: 22, fontWeight: '700', letterSpacing: 0.3, paddingVertical: 4 },
   xpBox: { alignItems: 'center', width: 72, flexShrink: 0 },
   xpLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },

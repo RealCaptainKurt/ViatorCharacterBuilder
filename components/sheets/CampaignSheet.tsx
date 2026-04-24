@@ -8,6 +8,8 @@ import {
 } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 import NumberEditModal from '../modals/NumberEditModal';
+import ColorSchemeModal from '../modals/ColorSchemeModal';
+import GlassButton from '../ui/GlassButton';
 import NPCEditModal from '../modals/NPCEditModal';
 import { COLOR_SCHEMES, ColorScheme, DEFAULT_SCHEME } from '../../constants/colorSchemes';
 import { ColorSchemeId, NamedItem } from '../../types';
@@ -44,19 +46,61 @@ const CampaignNameHeader = memo(function CampaignNameHeader({
   scheme: ColorScheme;
 }) {
   const name = useAppStore((s) => s.campaigns[campaignId]?.name ?? '');
+  const colorScheme = useAppStore((s) => s.campaigns[campaignId]?.colorScheme);
+  const isEditMode = useAppStore((s) => s.isEditMode);
   const updateCampaignField = useAppStore((s) => s.updateCampaignField);
+  const removeCampaign = useAppStore((s) => s.removeCampaign);
+
+  const [showColorModal, setShowColorModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleDelete = () => {
+    if (confirmDelete) {
+      removeCampaign(campaignId);
+    } else {
+      setConfirmDelete(true);
+    }
+  };
 
   return (
-    <View style={styles.nameRow}>
-      <TextInput
-        value={name}
-        onChangeText={(v) => updateCampaignField(campaignId, 'name', v)}
-        style={[styles.nameInput, { color: scheme.text }]}
-        placeholder="Campaign Name"
-        placeholderTextColor={scheme.textMuted}
-        selectionColor={scheme.primary}
-      />
-    </View>
+    <>
+      <View style={styles.nameRow}>
+        {isEditMode && colorScheme && (
+          <TouchableOpacity
+            onPress={() => setShowColorModal(true)}
+            activeOpacity={0.8}
+            style={[styles.colorBtn, { backgroundColor: scheme.primary, borderColor: scheme.surfaceBorder }]}
+          />
+        )}
+        <TextInput
+          value={name}
+          onChangeText={(v) => updateCampaignField(campaignId, 'name', v)}
+          style={[styles.nameInput, { color: scheme.text }]}
+          placeholder="Campaign Name"
+          placeholderTextColor={scheme.textMuted}
+          selectionColor={scheme.primary}
+        />
+        {isEditMode && (
+          <GlassButton
+            label={confirmDelete ? 'Confirm?' : 'Delete'}
+            onPress={handleDelete}
+            scheme={scheme}
+            variant={confirmDelete ? 'destructive' : 'ghost'}
+            small
+          />
+        )}
+      </View>
+
+      {colorScheme && (
+        <ColorSchemeModal
+          visible={showColorModal}
+          onClose={() => setShowColorModal(false)}
+          current={colorScheme}
+          onChange={(id) => updateCampaignField(campaignId, 'colorScheme', id)}
+          scheme={scheme}
+        />
+      )}
+    </>
   );
 });
 
@@ -650,8 +694,9 @@ export default function CampaignSheet({ campaignId, isStandalone, schemeOverride
 
 const styles = StyleSheet.create({
   card: { marginBottom: 12 },
-  nameRow: { marginBottom: 8 },
-  nameInput: { fontSize: 22, fontWeight: '700', letterSpacing: 0.3, paddingVertical: 4 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  nameInput: { flex: 1, minWidth: 0, fontSize: 22, fontWeight: '700', letterSpacing: 0.3, paddingVertical: 4 },
+  colorBtn: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, flexShrink: 0 },
   empty: { fontStyle: 'italic', fontSize: 13, paddingVertical: 8 },
   addBtn: { fontSize: 20, fontWeight: '700', lineHeight: 24, paddingHorizontal: 4 },
   addSectionBtn: { marginTop: 4, paddingVertical: 9, borderWidth: 1, borderRadius: 10, borderStyle: 'dashed', alignItems: 'center' },

@@ -5,7 +5,21 @@ export type ColorSchemeId =
   | 'ember'
   | 'arctic'
   | 'amethyst'
-  | 'obsidian';
+  | 'obsidian'
+  | 'ancientTanDark'
+  | 'ancientTanLight'
+  | 'peacefulPinkDark'
+  | 'peacefulPinkLight'
+  | 'hardlightBlueDark'
+  | 'hardlightBlueLight'
+  | 'alchemicalGoldDark'
+  | 'alchemicalGoldLight'
+  | 'magicalPurpleDark'
+  | 'magicalPurpleLight'
+  | 'monsterGreenDark'
+  | 'monsterGreenLight'
+  | 'apocalypseRedDark'
+  | 'apocalypseRedLight';
 
 // ─── Shared Components ──────────────────────────────────────────────────────
 export interface Trait {
