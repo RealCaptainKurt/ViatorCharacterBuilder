@@ -1,129 +1,102 @@
 const d6 = (): number => Math.floor(Math.random() * 6) + 1;
 
-const CARD_RANKS = [
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "T",
-  "J",
-  "Q",
-  "K",
-  "A",
-];
+// ── Internal helpers ──────────────────────────────────────────────────────────
 
-const SUIT_ADVERB = ["Physically", "Technically", "Mystically", "Socially"];
-const SUIT_ADJECTIVE = ["Physical", "Technical", "Mystical", "Social"];
-
-function drawCard(): { rank: string; suitIndex: number } {
-  return {
-    rank: CARD_RANKS[Math.floor(Math.random() * 13)],
-    suitIndex: Math.floor(Math.random() * 4),
-  };
+function _roll<T>(table: T[]): T {
+  return table[Math.floor(Math.random() * table.length)];
 }
 
-const ACTION_FOCUS: Record<string, string> = {
-  "2": "Seek",
-  "3": "Oppose",
-  "4": "Communicate",
-  "5": "Move",
-  "6": "Harm",
-  "7": "Create",
-  "8": "Reveal",
-  "9": "Command",
-  T: "Take",
-  J: "Protect",
-  Q: "Assist",
-  K: "Transform",
-  A: "Deceive",
-};
+// ── Oracle focus tables ───────────────────────────────────────────────────────
 
-const DETAIL_FOCUS: Record<string, string> = {
-  "2": "Small",
-  "3": "Large",
-  "4": "Old",
-  "5": "New",
-  "6": "Mundane",
-  "7": "Simple",
-  "8": "Complex",
-  "9": "Unsavory",
-  T: "Specialized",
-  J: "Unexpected",
-  Q: "Exotic",
-  K: "Dignified",
-  A: "Unique",
-};
+// d12 — verb phrases: what is happening or what to do
+const ACTION_FOCUS_TABLE = [
+  "Pursue or hunt down",
+  "Confront and challenge",
+  "Betray or undermine",
+  "Protect or defend",
+  "Uncover or expose",
+  "Create conflict between",
+  "Destroy or put an end to",
+  "Demand or seize",
+  "Escape or break free from",
+  "Change or reshape",
+  "Bargain or negotiate over",
+  "Unite or drive apart",
+];
 
-const TOPIC_FOCUS: Record<string, string> = {
-  "2": "Current Need",
-  "3": "Allies",
-  "4": "Community",
-  "5": "History",
-  "6": "Future Plans",
-  "7": "Enemies",
-  "8": "Knowledge",
-  "9": "Rumors",
-  T: "A Plot Arc",
-  J: "Recent Events",
-  Q: "Equipment",
-  K: "A Faction",
-  A: "The PCs",
-};
+// d10 — descriptive qualities that color something
+const DETAIL_FOCUS_TABLE = [
+  "Old and weathered",
+  "Surprisingly powerful",
+  "Well-hidden or concealed",
+  "Dangerous and volatile",
+  "Larger than expected",
+  "Deceptively insignificant",
+  "Ordinary on the surface",
+  "Unique or irreplaceable",
+  "Linked to the past",
+  "Not what it appears",
+];
+
+// d12 — narrative subjects and themes
+const TOPIC_FOCUS_TABLE = [
+  "A trusted ally",
+  "A long-held secret",
+  "An unresolved conflict",
+  "Something of great value",
+  "A figure from the past",
+  "Someone's true intentions",
+  "A hidden threat",
+  "An unexpected opportunity",
+  "A debt or obligation",
+  "The cost of past choices",
+  "Someone who desperately needs help",
+  "A fragile or dangerous alliance",
+];
 
 const SCENE_COMPLICATIONS = [
   "Hostile forces oppose you",
   "An obstacle blocks your way",
-  "Wouldn't it suck if...",
+  "The stakes become suddenly higher",
   "An NPC acts suddenly",
   "All is not as it seems",
   "Things actually go as planned",
 ];
 
+// d10
 const PACING_MOVES = [
-  "Foreshadow Trouble",
-  "Reveal a New Detail",
-  "An NPC Takes Action",
-  "Advance a Threat",
-  "Advance a Plot",
+  "Foreshadow trouble ahead",
+  "Reveal an unexpected detail",
+  "An NPC makes their move",
+  "Advance a looming threat",
+  "Push a plot arc forward",
+  "Introduce a new character or faction",
+  "Shift the scene — change the location or conditions",
+  "A clue or new lead surfaces",
+  "Two existing forces or problems suddenly collide",
+  "Something important is lost, taken, or changed",
 ];
 
+// d10
 const FAILURE_MOVES = [
-  "Cause Harm",
-  "Put Someone in a Spot",
-  "Offer a Choice",
-  "Advance a Threat",
-  "Reveal an Unwelcome Truth",
-  "Foreshadow Trouble",
+  "Deal harm to someone or something",
+  "Put someone in a difficult spot",
+  "Offer a hard choice with no good answer",
+  "Advance a threat",
+  "Reveal an unwelcome truth",
+  "Foreshadow something worse to come",
+  "Take something away — resource, ally, or advantage",
+  "The environment turns hostile or complicated",
+  "Introduce a new problem or complication",
+  "Someone's loyalty or resolve is tested",
 ];
-
-// ── Internal helpers ──────────────────────────────────────────────────────────
-
-function _cardText(
-  table: Record<string, string>,
-  suitForm: "adverb" | "adjective" = "adverb",
-): string {
-  const { rank, suitIndex } = drawCard();
-  const suit =
-    suitForm === "adverb" ? SUIT_ADVERB[suitIndex] : SUIT_ADJECTIVE[suitIndex];
-  return `${suit} ${table[rank]}`;
-}
 
 function _randomEventText(): string {
-  const action = _cardText(ACTION_FOCUS);
-  const topic = _cardText(TOPIC_FOCUS);
-  return `${action} / ${topic}`;
+  return `${_roll(ACTION_FOCUS_TABLE)} — ${_roll(TOPIC_FOCUS_TABLE)}`;
 }
 
 function _pacingMoveText(): string {
-  const roll = d6();
-  if (roll === 6) {
-    return `Random Event — ${_randomEventText()}`;
-  }
-  return PACING_MOVES[roll - 1];
+  return _roll(PACING_MOVES);
 }
 
 // ── Exported oracle functions ─────────────────────────────────────────────────
@@ -218,34 +191,34 @@ export function rollHowMuch(): string {
   return `How Much: ${HOW_MUCH[d6() - 1]}`;
 }
 
-/** OPSE Random Event — Action Focus + Topic Focus card draws. */
+/** OPSE Random Event — Action Focus + Topic Focus. */
 export function rollRandomEvent(): string {
   return `Random Event: ${_randomEventText()}`;
 }
 
-/** OPSE Action Focus — what does it do? (card draw) */
+/** OPSE Action Focus — what is happening or what to do. */
 export function rollActionFocus(): string {
-  return `Action Focus: ${_cardText(ACTION_FOCUS)}`;
+  return `Action Focus: ${_roll(ACTION_FOCUS_TABLE)}`;
 }
 
-/** OPSE Detail Focus — what kind of thing is it? (card draw) */
+/** OPSE Detail Focus — what kind or quality of thing is it. */
 export function rollDetailFocus(): string {
-  return `Detail Focus: ${_cardText(DETAIL_FOCUS, "adverb")}`;
+  return `Detail Focus: ${_roll(DETAIL_FOCUS_TABLE)}`;
 }
 
-/** OPSE Topic Focus — what is this about? (card draw) */
+/** OPSE Topic Focus — what is this about. */
 export function rollTopicFocus(): string {
-  return `Topic Focus: ${_cardText(TOPIC_FOCUS, "adjective")}`;
+  return `Topic Focus: ${_roll(TOPIC_FOCUS_TABLE)}`;
 }
 
-/** OPSE Pacing Move — use when action lulls or "what now?" (d6) */
+/** OPSE Pacing Move — use when action lulls or "what now?" */
 export function rollPacingMove(): string {
   return `Pacing Move: ${_pacingMoveText()}`;
 }
 
-/** OPSE Failure Move — use when a roll fails with consequences (d6) */
+/** OPSE Failure Move — use when a roll fails with consequences. */
 export function rollFailureMove(): string {
-  return `Failure Move: ${FAILURE_MOVES[d6() - 1]}`;
+  return `Failure Move: ${_roll(FAILURE_MOVES)}`;
 }
 
 // ── Dungeon generation tables ─────────────────────────────────────────────────
@@ -429,7 +402,7 @@ const ORG_OPERATING_STYLE = [
 
 /** Sanctuary Organization Generator — type, power level, drive, and operating style. */
 export function rollGroup(): string {
-  const detail = _cardText(DETAIL_FOCUS);
+  const detail = _roll(DETAIL_FOCUS_TABLE);
   const type = ORG_TYPE[d6() - 1];
   const power = ORG_POWER_LEVEL[d6() - 1];
   const drive = ORG_PRIMARY_DRIVE[d6() - 1];
@@ -498,7 +471,7 @@ const TOWN_NOTABLE_FEATURES = [
 
 /** City Builder — size, ruler, attraction, danger, and notable feature. */
 export function rollTown(): string {
-  const detail = _cardText(DETAIL_FOCUS);
+  const detail = _roll(DETAIL_FOCUS_TABLE);
   const size = TOWN_SIZE[d6() - 1];
   const ruler = TOWN_RULER[d6() - 1];
   const attraction = TOWN_ATTRACTION[d6() - 1];
@@ -509,38 +482,20 @@ export function rollTown(): string {
 
 // ── OPSE NPC & Plot Hook tables ───────────────────────────────────────────────
 
-const NPC_IDENTITY: Record<string, string> = {
-  "2": "Outlaw",
-  "3": "Drifter",
-  "4": "Tradesman",
-  "5": "Commoner",
-  "6": "Soldier",
-  "7": "Merchant",
-  "8": "Specialist",
-  "9": "Entertainer",
-  T: "Adherent",
-  J: "Leader",
-  Q: "Mystic",
-  K: "Adventurer",
-  A: "Lord",
-};
+// d12
+const NPC_IDENTITY_TABLE = [
+  "Outlaw", "Tradesman", "Commoner", "Soldier",
+  "Merchant", "Specialist", "Entertainer", "Adherent",
+  "Leader", "Mystic", "Adventurer", "Lord",
+];
 
-// Phrased to read naturally after "wants to"
-const NPC_GOAL: Record<string, string> = {
-  "2": "obtain something",
-  "3": "learn something",
-  "4": "harm someone",
-  "5": "restore something",
-  "6": "find something",
-  "7": "travel somewhere",
-  "8": "protect someone",
-  "9": "enrich themselves",
-  T: "avenge someone",
-  J: "fulfill their duty",
-  Q: "escape",
-  K: "create something",
-  A: "serve someone",
-};
+// d12 — phrased to read naturally after "wants to"
+const NPC_GOAL_TABLE = [
+  "obtain something", "learn something", "harm someone",
+  "restore something", "find something", "protect someone",
+  "enrich themselves", "avenge someone", "fulfill their duty",
+  "escape", "create something", "serve someone",
+];
 
 // Index 0 = unremarkable (special case). Others are used in "They have [X] that is [DETAIL FOCUS]."
 const NPC_NOTABLE_FEATURE = [
@@ -581,11 +536,6 @@ const PLOT_ADVERSARY = [
 
 // ── OPSE NPC & Plot Hook helpers ──────────────────────────────────────────────
 
-function _cardRankOnly(table: Record<string, string>): string {
-  const { rank } = drawCard();
-  return table[rank];
-}
-
 function _article(word: string): string {
   return /^[aeiou]/i.test(word) ? "An" : "A";
 }
@@ -594,8 +544,8 @@ function _article(word: string): string {
 
 /** OPSE NPC Generator — identity, goal, and notable feature with Detail Focus. */
 export function rollNPC(): string {
-  const identity = _cardRankOnly(NPC_IDENTITY);
-  const goal = _cardRankOnly(NPC_GOAL);
+  const identity = _roll(NPC_IDENTITY_TABLE);
+  const goal = _roll(NPC_GOAL_TABLE);
   const featureRoll = d6();
   const feature = NPC_NOTABLE_FEATURE[featureRoll - 1];
 
@@ -605,7 +555,7 @@ export function rollNPC(): string {
   if (feature === null) {
     result += " They are relatively unremarkable.";
   } else {
-    const detail = _cardText(DETAIL_FOCUS);
+    const detail = _roll(DETAIL_FOCUS_TABLE);
     result += ` They have ${feature} that is ${detail}.`;
   }
 
@@ -617,7 +567,7 @@ export function rollPlotHook(): string {
   const objective = PLOT_OBJECTIVE[d6() - 1];
   const reward = PLOT_REWARD[d6() - 1];
   const adversary = PLOT_ADVERSARY[d6() - 1];
-  const detail = _cardText(DETAIL_FOCUS);
+  const detail = _roll(DETAIL_FOCUS_TABLE);
   return `Plot Hook: You have to ${objective} in exchange for ${reward}, but in your way stands ${adversary} who are ${detail}.`;
 }
 
@@ -711,8 +661,8 @@ const POWER_TYPES = [
   "Shocking",
   "Earthen",
   "Watery",
-  "Light",
-  "Dark",
+  "Bright",
+  "Shadow",
   "Holy",
   "Unholy",
   "Healing",
@@ -724,7 +674,7 @@ const POWER_TYPES = [
   "Magnetic",
   "Living",
   "Mental",
-  "Rapid",
+  "Swarming",
   "Illusory",
   "Flying",
   "Draining",

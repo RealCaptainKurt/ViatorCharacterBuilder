@@ -270,7 +270,7 @@ export default function ImportExportScreen() {
           )}
 
           {charList.map((char) => {
-            const cs = COLOR_SCHEMES[char.colorScheme];
+            const cs = COLOR_SCHEMES[char.colorScheme] ?? COLOR_SCHEMES[DEFAULT_SCHEME];
             const checked = selectedIds.has(char.id);
             return (
               <TouchableOpacity
@@ -296,7 +296,7 @@ export default function ImportExportScreen() {
           })}
 
           {campList.map((camp) => {
-            const cs = COLOR_SCHEMES[camp.colorScheme];
+            const cs = COLOR_SCHEMES[camp.colorScheme] ?? COLOR_SCHEMES[DEFAULT_SCHEME];
             const checked = selectedIds.has(camp.id);
             return (
               <TouchableOpacity
